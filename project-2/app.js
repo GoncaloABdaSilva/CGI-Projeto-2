@@ -1,6 +1,6 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
 import { ortho, lookAt, flatten } from "../../libs/MV.js";
-import {modelView, loadMatrix, multRotationY, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
+import {modelView, loadMatrix, multRotationX, multRotationY, multRotationZ, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
 import * as CUBE from '../../libs/objects/cube.js';
@@ -10,7 +10,7 @@ import * as CYLINDER from '../../libs/objects/cylinder.js';
 let gl;
 
 let time = 0;           // Global simulation time in days
-let speed = 1/60.0;     // Speed (how many days added to time on each render pass
+let speed = 1;     // Speed (how many days added to time on each render pass
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 
@@ -108,20 +108,7 @@ function setup(shaders)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
-    function RotorDeHelice(){
-        multScale([1,1,2]);
-
-        uploadModelView();
-        CYLINDER.draw(gl, program, mode);
-    }
-
-    function PaDeHelice(){
-        multScale([10,1,1]);
-
-        uploadModelView();
-        SPHERE.draw(gl, program, mode);
-    }
-
+/*
     function Sun()
     {
         // Don't forget to scale the sun, rotate it around the y axis at the correct speed
@@ -180,20 +167,7 @@ function setup(shaders)
             Moon();
         popMatrix();
     }
-
-    function Helice(){
-        pushMatrix();
-            RotorDeHelice();
-        popMatrix();
-        pushMatrix();
-            multTranslation([5,0,0.5]);
-            PaDeHelice();
-        popMatrix();
-        pushMatrix();
-            multTranslation([-5,0,0.5]);
-            PaDeHelice();
-        popMatrix();
-    }
+    */
 
     /*function SolarSystem(){
         pushMatrix();
@@ -216,6 +190,163 @@ function setup(shaders)
         popMatrix();
     }*/
 
+    function RotorDeHelice(){
+        multScale([2/3,2.5,2/3]);
+
+        uploadModelView();
+        CYLINDER.draw(gl, program, mode);
+    }
+
+    function PaDeHelice(){
+        multScale([16,1,1]);
+
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
+    // 3 helices
+    function Helice(){
+        pushMatrix();
+            RotorDeHelice();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0,1/2,0]);
+            pushMatrix();
+                multTranslation([8,0,0]);
+                PaDeHelice();
+            popMatrix();
+            pushMatrix();
+                multRotationY(120);
+                multTranslation([8,0,0]);
+                PaDeHelice();
+            popMatrix();
+            pushMatrix();
+                multRotationY(240);
+                multTranslation([8,0,0]);
+                PaDeHelice();
+            popMatrix();
+        popMatrix();
+    }
+
+    function frente() {
+        multScale([20,10,10]);
+
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
+    function carenagem() { // estrutura entre a cabeça e cauda do helicóptero; não tenho a certeza se é assim que se chama
+        multScale([20,3,2]);
+
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
+    function cauda() {
+        multRotationZ(70);
+        multScale([5,3,2]);
+
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
+    function partePrincipal() {
+        pushMatrix();
+            multTranslation([-1,-6.5,0]);
+            frente();
+        popMatrix();
+        pushMatrix();
+            multTranslation([14,-5,0]);
+            carenagem();
+        popMatrix();
+        pushMatrix();
+            multTranslation([23,-3.5,0]);
+            cauda();
+        popMatrix();
+    }
+
+    function RotorDaCauda(){
+        multScale([2/3,1.5,2/3]);
+
+        uploadModelView();
+        CYLINDER.draw(gl, program, mode);
+    }
+
+    function PaDaCauda(){
+        multScale([3.5,0.5,0.5]);
+
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
+    function HeliceDaCauda(){
+        pushMatrix();
+            RotorDaCauda();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0,1/2,0]);
+            pushMatrix();
+                multTranslation([1.5,0,0]);
+                PaDaCauda();
+            popMatrix();
+            pushMatrix();
+                multTranslation([-1.5,0,0]);
+                PaDaCauda();
+            popMatrix();
+        popMatrix();
+    }
+
+    function perna(){
+        multScale([2/3,5,2/3]);
+
+        uploadModelView();
+        CUBE.draw(gl, program, mode);
+    }
+
+    function apoio(){
+        multScale([1,20,1]);
+
+        uploadModelView();
+        CYLINDER.draw(gl, program, mode);
+    }
+
+    function base() {
+        pushMatrix();
+            multTranslation([-5,-12,4]);
+            multRotationX(-20);
+            multRotationZ(-15);
+            perna();
+        popMatrix();
+        pushMatrix();
+            multTranslation([3,-12,4]);
+            multRotationX(-20);
+            multRotationZ(15);
+            perna();
+        popMatrix();
+        pushMatrix();
+            multTranslation([-5,-12,-4]);
+            multRotationX(20);
+            multRotationZ(-15);
+            perna();
+        popMatrix();
+        pushMatrix();
+            multTranslation([3,-12,-4]);
+            multRotationX(20);
+            multRotationZ(15);
+            perna();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0,-14,4.8]);
+            multRotationZ(90);
+            apoio();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0,-14,-4.8]);
+            multRotationZ(90);
+            apoio();
+        popMatrix();
+    }
+
     function render()
     {
         if(animation) time += speed;
@@ -227,11 +358,33 @@ function setup(shaders)
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
     
-        loadMatrix(lookAt([0,CITY_WIDTH,CITY_WIDTH], [0,0,0], [0,1,0]));
+        loadMatrix(lookAt([0,CITY_WIDTH/2,CITY_WIDTH], [0,0,0], [0,1,0])); // vista meio de cima
+        //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista de lado
+        //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista de frente
 
         //SolarSystem();
+
+
+        multRotationY(time/4); // helicóptero a rodar para ajudar a perceber as dimensões
         pushMatrix();
-            Helice();
+            multScale([2,2,2]); // só para ver melhor o helicóptero
+            pushMatrix();
+                multTranslation([0,-0.5,0]);
+                multRotationY(time);
+                Helice();
+            popMatrix()
+            pushMatrix();
+                partePrincipal();
+            popMatrix();
+            pushMatrix();
+                multTranslation([23,-3.5,1]);
+                multRotationZ(time);
+                multRotationX(90);
+                HeliceDaCauda();
+            popMatrix();
+            pushMatrix();
+                base();
+            popMatrix();
         popMatrix();
     }
 }
