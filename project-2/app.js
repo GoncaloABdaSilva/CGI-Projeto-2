@@ -13,12 +13,14 @@ let time = 0;           // Global simulation time
 let speed = 1;     // Speed 
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
+let height = 0;
 
 const CITY_WIDTH = 50;
-const MAX_SPEED = 6;
+const MAX_SPEED = 3;
 const MIN_SPEED = 0;
-const INCLINE_MULTIPLIER = 10;    //So that the maximum incline the helicopter can have is 60 degrees
-
+const INCLINE_MULTIPLIER = 10;    //So that the maximum incline the helicopter can have is 30 degrees
+const MAX_HEIGHT = 25;
+const MIN_HEIGHT = 0;
 
 
 function setup(shaders)
@@ -49,11 +51,17 @@ function setup(shaders)
                 animation = !animation;
                 break;
             case '+':
-                if(animation && speed * 1.1 <= MAX_SPEED) speed *= 1.1;
+                if(animation && speed + 0.1 <= MAX_SPEED) speed += 0.1;
                 break;
             case '-':
-                if(animation && speed / 1.1 >= MIN_SPEED) speed /= 1.1;
+                if(animation && speed - 0.1 >= MIN_SPEED) speed -= 0.1;
                 break;
+            case "ArrowUp":
+                if(animation && height + 0.1 <= MAX_HEIGHT) height += 0.1;
+                break;
+            case "ArrowDown":
+                if(animation && height - 0.1 >= MIN_HEIGHT) height -= 0.1;
+                
         }
     }
 
@@ -281,7 +289,7 @@ function setup(shaders)
     }
 
     function soil(){
-        multScale([CITY_WIDTH,0.5,CITY_WIDTH]);
+        multScale([CITY_WIDTH * 2, 0.5, CITY_WIDTH * 2]);
 
         uploadModelView();
         updateComponentColor("grey");2
@@ -305,12 +313,15 @@ function setup(shaders)
         loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
 
         //Desenhar um circulo no centro
+        multScale([50, 50, 50]);
         uploadModelView();
         SPHERE.draw(gl, program, mode);
+        multScale([0.02,0.02,0.02]);
+        //
 
         pushMatrix();
             multRotationY(time);
-            multTranslation([50, 0, 0]);
+            multTranslation([40, height + 3.4, 0]); // 3.4 para que as bases do helicoptero toquem no chao quando a altura é 0
             multScale([0.2, 0.2, 0.2]);
             multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
             multRotationZ(speed * INCLINE_MULTIPLIER);    // helicoptero inclina consoante a velocidade
