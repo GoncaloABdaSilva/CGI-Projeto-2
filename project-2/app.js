@@ -87,7 +87,7 @@ function setup(shaders)
         switch(newColor){
             case "red": gl.uniform3fv(color, vec3(255,0,0)); break;
             case "blue": gl.uniform3fv(color, vec3(0, 0, 255)); break;
-            case "yellow": gl.uniform3fv(color, vec3(0, 255, 255)); break;
+            case "yellow": gl.uniform3fv(color, vec3(255, 255, 0)); break;
             case "grey": gl.uniform3fv(color, vec3(128, 128, 128)); break;
         }
     }
@@ -262,7 +262,7 @@ function setup(shaders)
         pushMatrix();
             pushMatrix();
                 multTranslation([0,-0.5,0]);
-                multRotationY(time);
+                multRotationY(time*12);
                 Helice();
             popMatrix()
             pushMatrix();
@@ -270,7 +270,7 @@ function setup(shaders)
             popMatrix();
             pushMatrix();
                 multTranslation([23,-3.5,1]);
-                multRotationZ(time);
+                multRotationZ(time*12);
                 multRotationX(90);
                 HeliceDaCauda();
             popMatrix();
@@ -280,7 +280,13 @@ function setup(shaders)
         popMatrix();
     }
 
+    function soil(){
+        multScale([CITY_WIDTH,0.5,CITY_WIDTH]);
 
+        uploadModelView();
+        updateComponentColor("grey");2
+        CUBE.draw(gl, program, mode);
+    }
 
     function render()
     {
@@ -293,9 +299,10 @@ function setup(shaders)
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
     
-        loadMatrix(lookAt([0,CITY_WIDTH/2,CITY_WIDTH], [0,0,0], [0,1,0])); // vista meio de cima
-        //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista de lado
-        //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista de frente
+        //loadMatrix(lookAt([0,CITY_WIDTH/2,CITY_WIDTH], [0,0,0], [0,1,0])); // vista meio de cima
+        //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista lateral
+        //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista frontal
+        loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
 
         //Desenhar um circulo no centro
         uploadModelView();
@@ -303,11 +310,14 @@ function setup(shaders)
 
         pushMatrix();
             multRotationY(time);
-            multTranslation([70, 0, 0]);
+            multTranslation([50, 0, 0]);
             multScale([0.2, 0.2, 0.2]);
             multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
             multRotationZ(speed * INCLINE_MULTIPLIER);    // helicoptero inclina consoante a velocidade
             helicoptero();
+        popMatrix();
+        pushMatrix();
+            soil();
         popMatrix();
 
     }
