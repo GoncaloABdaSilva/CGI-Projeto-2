@@ -14,6 +14,10 @@ let speed = 1;     // Speed
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 let height = 0;
+let boxHeight;
+let boxValue = false;
+let boxTime = 0;
+let boxPosition;
 let mView;
 
 const CITY_WIDTH = 50;
@@ -79,7 +83,16 @@ function setup(shaders)
                 break;
             case "ArrowDown":
                 if(animation && height - 0.1 >= MIN_HEIGHT) height -= 0.1;
-                
+                break;
+            case " ":                
+                if (!boxValue) {         
+                    boxTime = 0;     
+                    boxHeight = height;
+                    boxValue = true;
+                    boxPosition = time;
+                    setTimeout(hideBox, 5000);
+                }
+                break;
         }
     }
 
@@ -314,9 +327,22 @@ function setup(shaders)
         CUBE.draw(gl, program, mode);
     }
 
+    function box(){
+        multScale([2, 2, 2]);
+
+        uploadModelView();
+        updateComponentColor("grey");
+        CUBE.draw(gl, program, mode);
+    }
+
+    function hideBox() {
+        boxValue = false;
+    }
+
     function render()
     {
         if(animation) time += speed;
+        boxTime += speed;
         window.requestAnimationFrame(render);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -337,9 +363,20 @@ function setup(shaders)
         SPHERE.draw(gl, program, mode);
         multScale([0.02,0.02,0.02]);
         //
-
+        
         pushMatrix();
             multRotationY(time);
+            if(boxValue){
+                pushMatrix();
+                    multRotationY(boxPosition - time);
+                    multTranslation([40, height + 3.4, 0]);
+                    //while(boxHeight > 1.5) {
+                        multTranslation([0,-boxTime,0]);
+                        boxHeight -= boxTime;
+                    //}
+                    box();
+                popMatrix();
+            }
             multTranslation([40, height + 3.4, 0]); // 3.4 para que as bases do helicoptero toquem no chao quando a altura é 0
             multScale([0.2, 0.2, 0.2]);
             multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
@@ -349,7 +386,6 @@ function setup(shaders)
         pushMatrix();
             soil();
         popMatrix();
-
     }
 }
 
