@@ -86,7 +86,7 @@ function setup(shaders)
                 break;
             case " ":                
                 if (!boxValue) {         
-                    boxTime = 0;     
+                    boxTime = 0.1;     
                     boxHeight = height;
                     boxValue = true;
                     boxPosition = time;
@@ -370,9 +370,9 @@ function setup(shaders)
                     multRotationY(boxPosition - time);
                     multTranslation([40, boxHeight-boxTime, 0]);
                     //multTranslation([0,-boxTime,0]);
-                    if(boxHeight-boxTime > 1.5) {
-                        //boxTime *= 2;
-                        boxHeight -= 0.1;
+                    if(boxHeight-boxTime > 2) {
+                        boxTime = boxTime*1.1;
+                        boxHeight -= boxTime;
                     }
                     //console.log("Helicopter height = " + height); // debug
                     console.log("Box height = " + boxHeight); // debug
