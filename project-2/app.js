@@ -16,7 +16,7 @@ let animation = true;   // Animation is running
 let height = 0;
 let boxHeight;
 let boxValue = false;
-let boxTime = 0;
+let boxTime;
 let boxPosition;
 let mView;
 
@@ -342,7 +342,6 @@ function setup(shaders)
     function render()
     {
         if(animation) time += speed;
-        boxTime += speed;
         window.requestAnimationFrame(render);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -369,11 +368,14 @@ function setup(shaders)
             if(boxValue){
                 pushMatrix();
                     multRotationY(boxPosition - time);
-                    multTranslation([40, height + 3.4, 0]);
-                    //while(boxHeight > 1.5) {
-                        multTranslation([0,-boxTime,0]);
-                        boxHeight -= boxTime;
-                    //}
+                    multTranslation([40, boxHeight-boxTime, 0]);
+                    //multTranslation([0,-boxTime,0]);
+                    if(boxHeight-boxTime > 1.5) {
+                        //boxTime *= 2;
+                        boxHeight -= 0.1;
+                    }
+                    //console.log("Helicopter height = " + height); // debug
+                    console.log("Box height = " + boxHeight); // debug
                     box();
                 popMatrix();
             }
