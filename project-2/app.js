@@ -14,6 +14,7 @@ let speed = 1;     // Speed
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 let height = 0;
+let mView;
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -34,13 +35,30 @@ function setup(shaders)
 
     let mProjection = ortho(-CITY_WIDTH*aspect,CITY_WIDTH*aspect, -CITY_WIDTH, CITY_WIDTH,-3*CITY_WIDTH,3*CITY_WIDTH);
 
-    mode = gl.LINES; 
+    mode = gl.LINES;
+
+    mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
 
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
 
     document.onkeydown = function(event) {
         switch(event.key) {
+            case '1':
+                mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
+                break;
+            case '2':
+                // Front view
+                mView = lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]);
+                break;
+            case '3':
+                // Top view
+                mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
+                break;
+            case '4':
+                // Right view
+                mView = lookAt([CITY_WIDTH, 0, 0], [0, 0, 0], [0, 1, 0]);
+                break;
             case 'w':
                 mode = gl.LINES; 
                 break;
@@ -292,7 +310,7 @@ function setup(shaders)
         multScale([CITY_WIDTH * 2, 0.5, CITY_WIDTH * 2]);
 
         uploadModelView();
-        updateComponentColor("grey");2
+        updateComponentColor("grey");
         CUBE.draw(gl, program, mode);
     }
 
@@ -310,7 +328,8 @@ function setup(shaders)
         //loadMatrix(lookAt([0,CITY_WIDTH/2,CITY_WIDTH], [0,0,0], [0,1,0])); // vista meio de cima
         //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista lateral
         //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista frontal
-        loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
+        //loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
+        loadMatrix(mView);
 
         //Desenhar um circulo no centro
         multScale([50, 50, 50]);
