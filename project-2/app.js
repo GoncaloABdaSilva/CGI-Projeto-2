@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten, vec3 } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, vec3, mult, rotateX, rotateY, translate } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationX, multRotationY, multRotationZ, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -19,6 +19,8 @@ let boxValue = false;
 let boxTime;
 let boxPosition;
 let mView;
+let angleX = 0;
+let angleY = 0;
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -41,7 +43,7 @@ function setup(shaders)
 
     mode = gl.LINES;
 
-    mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
+    mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]); //
 
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
@@ -49,7 +51,7 @@ function setup(shaders)
     document.onkeydown = function(event) {
         switch(event.key) {
             case '1':
-                mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
+                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
                 break;
             case '2':
                 // Front view
@@ -63,10 +65,10 @@ function setup(shaders)
                 // Right view
                 mView = lookAt([CITY_WIDTH, 0, 0], [0, 0, 0], [0, 1, 0]);
                 break;
-            case 'w':
+            case 'l':
                 mode = gl.LINES; 
                 break;
-            case 's':
+            case 't':
                 mode = gl.TRIANGLES;
                 break;
             case 'p':
@@ -85,13 +87,47 @@ function setup(shaders)
                 if(animation && height - 0.1 >= MIN_HEIGHT) height -= 0.1;
                 break;
             case " ":                
-                if (!boxValue) {         
+                if (!boxValue && height > 1.5) {         
                     boxTime = 0.1;     
                     boxHeight = height;
                     boxValue = true;
                     boxPosition = time;
                     setTimeout(hideBox, 5000);
                 }
+                break;
+            case "d":
+                if(angleY == 0) {
+                    angleY = 359;
+                } else{
+                angleY -= 1;
+                }
+                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+                break;
+            case "a":
+                if(angleY == 359) {
+                    angleY = 0;
+                } else{
+                    angleY += 1;
+                }
+                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+                break;
+            case "s":
+                if(angleX == 0) {
+                    angleX = 359;
+                } else{
+                    angleX -= 1;
+                }
+                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+                break;
+            case "w":
+                if(angleX == 359) {
+                    angleX = 0;
+                } else{
+                    angleX += 1;
+                }
+                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+                break;
+            case "f":
                 break;
         }
     }
@@ -354,6 +390,11 @@ function setup(shaders)
         //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista lateral
         //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista frontal
         //loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
+
+        
+        //mView = mult(translate(-40, -height, 0), rotateY(-time)); // tentativa mais próxima de 1a pessoa
+
+
         loadMatrix(mView);
 
         //Desenhar um circulo no centro
@@ -370,7 +411,7 @@ function setup(shaders)
                     multRotationY(boxPosition - time);
                     multTranslation([40, boxHeight-boxTime, 0]);
                     //multTranslation([0,-boxTime,0]);
-                    if(boxHeight-boxTime > 2) {
+                    if(boxHeight-boxTime > 1.75) {
                         boxTime = boxTime*1.1;
                         boxHeight -= boxTime;
                     }
