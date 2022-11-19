@@ -28,6 +28,7 @@ const MAX_HEIGHT = 35;
 const MIN_HEIGHT = 0;
 
 
+
 function setup(shaders)
 {
     let canvas = document.getElementById("gl-canvas");
