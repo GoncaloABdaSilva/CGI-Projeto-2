@@ -19,8 +19,6 @@ let boxValue = false;
 let boxTime;
 let boxPosition;
 let mView;
-let angleX = 0;
-let angleY = 0;
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -43,7 +41,7 @@ function setup(shaders)
 
     mode = gl.TRIANGLES;
 
-    mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]); //
+    mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
 
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
@@ -51,7 +49,7 @@ function setup(shaders)
     document.onkeydown = function(event) {
         switch(event.key) {
             case '1':
-                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+                mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
                 break;
             case '2':
                 // Front view
@@ -65,10 +63,10 @@ function setup(shaders)
                 // Right view
                 mView = lookAt([CITY_WIDTH, 0, 0], [0, 0, 0], [0, 1, 0]);
                 break;
-            case 'l':
+            case 'w':
                 mode = gl.LINES; 
                 break;
-            case 't':
+            case 's':
                 mode = gl.TRIANGLES;
                 break;
             case 'p':
@@ -87,47 +85,13 @@ function setup(shaders)
                 if(animation && height - 0.2 >= MIN_HEIGHT) height -= 0.2;
                 break;
             case " ":                
-                if (!boxValue && height > 1.5) {         
+                if (!boxValue) {         
                     boxTime = 0.1;     
                     boxHeight = height;
                     boxValue = true;
                     boxPosition = time;
                     setTimeout(hideBox, 5000);
                 }
-                break;
-            case "d":
-                if(angleY == 0) {
-                    angleY = 359;
-                } else{
-                angleY -= 1;
-                }
-                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                break;
-            case "a":
-                if(angleY == 359) {
-                    angleY = 0;
-                } else{
-                    angleY += 1;
-                }
-                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                break;
-            case "s":
-                if(angleX == 0) {
-                    angleX = 359;
-                } else{
-                    angleX -= 1;
-                }
-                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                break;
-            case "w":
-                if(angleX == 359) {
-                    angleX = 0;
-                } else{
-                    angleX += 1;
-                }
-                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                break;
-            case "f":
                 break;
         }
     }
@@ -683,6 +647,10 @@ function setup(shaders)
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
     
+        //loadMatrix(lookAt([0,CITY_WIDTH/2,CITY_WIDTH], [0,0,0], [0,1,0])); // vista meio de cima
+        //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista lateral
+        //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista frontal
+        //loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
         loadMatrix(mView);
 
         pushMatrix();
@@ -690,8 +658,9 @@ function setup(shaders)
             if(boxValue){
                 pushMatrix();
                     multRotationY(boxPosition - time);
-                    multTranslation([30, boxHeight-boxTime, 0]);
-                    if(boxHeight-boxTime > 1.75) {
+                    multTranslation([40, boxHeight-boxTime, 0]);
+                    //multTranslation([0,-boxTime,0]);
+                    if(boxHeight-boxTime > 2) {
                         boxTime = boxTime*1.1;
                         boxHeight -= boxTime;
                     }
