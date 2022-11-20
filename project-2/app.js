@@ -711,6 +711,7 @@ function setup(shaders)
         loadMatrix(mView);
 
         //console.log(movement);
+        //console.log(currentSpeed);
 
         pushMatrix();
                 multRotationY(helicopterAngle);
@@ -733,9 +734,11 @@ function setup(shaders)
             multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
             if (movement) {
                 if (currentSpeed < speed) currentSpeed+=0.05;
+                if (currentSpeed > speed) currentSpeed = speed;
             }
             else {
                 if (currentSpeed > 0) currentSpeed-=0.05;
+                if (currentSpeed < 0) currentSpeed = 0;
             }
             multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicoptero inclina consoante a velocidade
             helicoptero();

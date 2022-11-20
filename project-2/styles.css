@@ -9,5 +9,20 @@ body {
 }
 
 .sliders {
+    text-align: right;
+    font-weight: bold;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    padding: 10px 1%;
+}
+
+.slider {
     color: white;
+    opacity: 0.5;
+    padding: 0px 20px;
+}
+
+.slider:hover {
+    opacity: 1;
 }
