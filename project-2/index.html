@@ -6,7 +6,13 @@
         <script type="module" src="./app.js"></script>
     </head>
     <body>
-        <canvas id="gl-canvas" width="128" height="128">
+        <div class="sliders">
+            X:
+            <input type="range" min="0" max="90" value="30" id ="sliderX">
+            Y:
+            <input type="range" min="0" max="360" value="315" id ="sliderY">
+        </div>
+        <canvas id="gl-canvas" width="128" height="128"> 
             Oops! Something went wrong!
         </canvas>
     </body>

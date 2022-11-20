@@ -7,3 +7,7 @@ body {
     overflow: hidden; /*  Disable scrollbars */
     background-color: black;
 }
+
+.sliders {
+    color: white;
+}

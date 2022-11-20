@@ -11,6 +11,7 @@ let gl;
 
 let time = 0;           // Global simulation time
 let speed = 1;     // Speed 
+let currentSpeed = 0;
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 let height = 0;
@@ -21,6 +22,9 @@ let boxPosition;
 let mView;
 let angleX = 0;
 let angleY = 0;
+let axonometric = true;
+let movement = false;
+let helicopterAngle = 0;
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -52,24 +56,27 @@ function setup(shaders)
     document.onkeydown = function(event) {
         switch(event.key) {
             case '1':
-                mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+                axonometric = true;
                 break;
             case '2':
                 // Front view
+                axonometric = false;
                 mView = lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]);
                 break;
             case '3':
                 // Top view
+                axonometric = false;
                 mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
                 break;
             case '4':
                 // Right view
+                axonometric = false;
                 mView = lookAt([CITY_WIDTH, 0, 0], [0, 0, 0], [0, 1, 0]);
                 break;
-            case 'l':
+            case 'w':
                 mode = gl.LINES; 
                 break;
-            case 't':
+            case 's':
                 mode = gl.TRIANGLES;
                 break;
             case 'p':
@@ -87,16 +94,19 @@ function setup(shaders)
             case "ArrowDown":
                 if(animation && height - 0.2 >= MIN_HEIGHT) height -= 0.2;
                 break;
-            case " ":                
-                if (!boxValue) {         
+            case "ArrowLeft":
+                movement = true;
+                break;
+            case " ":
+                if (!boxValue && height >= 4) {         
                     boxTime = 0.1;     
                     boxHeight = height;
                     boxValue = true;
-                    boxPosition = time;
+                    boxPosition = helicopterAngle;
                     setTimeout(hideBox, 5000);
                 }
                 break;
-               case "d":
+               /*case "d":
                    if(angleY == 0) {
                        angleY = 359;
                    } else{
@@ -127,7 +137,13 @@ function setup(shaders)
                        angleX += 1;
                    }
                    mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                   break;
+                   break;*/
+        }
+        //movement = false;
+    }
+    document.onkeyup = function(event) {
+        if(event.key == "ArrowLeft") {
+            movement = false;
         }
     }
 
@@ -673,6 +689,7 @@ function setup(shaders)
     function render()
     {
         if(animation) time += speed;
+        helicopterAngle += currentSpeed;
         window.requestAnimationFrame(render);
 
         gl.clearColor(135/255, 206/255, 235/255, 1);
@@ -686,14 +703,21 @@ function setup(shaders)
         //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista lateral
         //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista frontal
         //loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
+        if (axonometric) {
+            angleX = document.getElementById("sliderX").value;
+            angleY = document.getElementById("sliderY").value;
+            mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+        }
         loadMatrix(mView);
 
+        //console.log(movement);
+
         pushMatrix();
-            multRotationY(time);
+                multRotationY(helicopterAngle);
             if(boxValue){
                 pushMatrix();
-                    multRotationY(boxPosition - time);
-                    multTranslation([40, boxHeight-boxTime, 0]);
+                    multRotationY(boxPosition - helicopterAngle);
+                    multTranslation([30, boxHeight-boxTime, 0]);
                     //multTranslation([0,-boxTime,0]);
                     if(boxHeight-boxTime > 2) {
                         boxTime = boxTime*1.1;
@@ -705,8 +729,15 @@ function setup(shaders)
             }
             multTranslation([30, height + 4, 0]); // 4 para que as bases do helicoptero toquem no chao quando a altura é 0
             multScale([0.25, 0.25, 0.25]);
+            //multScale([0.4, 0.4, 0.4]);
             multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
-            multRotationZ(speed * INCLINE_MULTIPLIER);    // helicoptero inclina consoante a velocidade
+            if (movement) {
+                if (currentSpeed < speed) currentSpeed+=0.05;
+            }
+            else {
+                if (currentSpeed > 0) currentSpeed-=0.05;
+            }
+            multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicoptero inclina consoante a velocidade
             helicoptero();
         popMatrix();
         pushMatrix();
