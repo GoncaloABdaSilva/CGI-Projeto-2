@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten, vec3, mult, rotateX, rotateY, translate } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, vec3, mult, rotateX, rotateY, translate, scalem } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationX, multRotationY, multRotationZ, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -23,6 +23,7 @@ let mView;
 let angleX = 0;
 let angleY = 0;
 let axonometric = true;
+let fpv = false;
 let movement = false;
 let helicopterAngle = 0;
 
@@ -48,30 +49,36 @@ function setup(shaders)
 
     mode = gl.TRIANGLES;
 
-    mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
-
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
 
     document.onkeydown = function(event) {
         switch(event.key) {
             case '1':
+                fpv = false;
                 axonometric = true;
                 break;
             case '2':
                 // Front view
                 axonometric = false;
-                mView = lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]);
+                fpv = false;
+                mView = lookAt([0,0,1], [0,0,0], [0,1,0]);
                 break;
             case '3':
                 // Top view
                 axonometric = false;
+                fpv = false;
                 mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
                 break;
             case '4':
                 // Right view
                 axonometric = false;
-                mView = lookAt([CITY_WIDTH, 0, 0], [0, 0, 0], [0, 1, 0]);
+                fpv = false;
+                mView = lookAt([1, 0, 0], [0, 0, 0], [0, 1, 0]);
+                break;
+            case '5':
+                axonometric = false;
+                fpv = true;
                 break;
             case 'w':
                 mode = gl.LINES; 
@@ -707,22 +714,33 @@ function setup(shaders)
             angleX = document.getElementById("sliderX").value;
             angleY = document.getElementById("sliderY").value;
             mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+            //mView = mult(rotateY(angleY), mult(rotateX(angleX), lookAt([0,0,1], [0,0,0], [0,1,0])));
         }
-        loadMatrix(mView);
+        // TENTATIVAS DE FPV
+        //mView = mult(lookAt([0,0,0], [0,0,0], [0,1,0]), mult(translate(-30, -height, 0), rotateY(-helicopterAngle))); // tentativa mais próxima de 1a pessoa
+        //mView = mult(translate(-30, -height, 0), mult(rotateY(-helicopterAngle), lookAt([0,0,0], [0,0,0], [0,1,0])));
+        //mView = mult(rotateY(-helicopterAngle), mult(translate(-30, -height - 4, 0), mult(scalem(4,4,4), rotateY(0))));
+        //mView = mult(translate(0,0,0), mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))));
+        else if (fpv) {
+            mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle)));
+        }
+        
 
+        loadMatrix(mView);
         //console.log(movement);
         //console.log(currentSpeed);
-
         pushMatrix();
                 multRotationY(helicopterAngle);
-            if(boxValue){
+            if(boxValue){ // se existir uma caixa
                 pushMatrix();
-                    multRotationY(boxPosition - helicopterAngle);
-                    multTranslation([30, boxHeight-boxTime, 0]);
-                    //multTranslation([0,-boxTime,0]);
-                    if(boxHeight-boxTime > 2) {
+                    multRotationY(boxPosition - helicopterAngle); // para não seguir o helicóptero
+                    // multTranslation([30, boxHeight-boxTime, 0]); // descomentar
+                    multTranslation([30,boxHeight,0]); // teste
+                    // if(boxHeight-boxTime > 2) { // descomentar
+                    if (boxHeight > 1.75) {
                         boxTime = boxTime*1.1;
                         boxHeight -= boxTime;
+                        if (boxHeight < 1.75) boxHeight = 1.75;
                     }
                     console.log("Box height = " + boxHeight); // debug
                     box();
