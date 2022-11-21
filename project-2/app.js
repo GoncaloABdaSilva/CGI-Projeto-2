@@ -1,11 +1,11 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten, vec3, mult, rotateX, rotateY, translate } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, vec3, mult, rotateX, rotateY, translate, scalem } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationX, multRotationY, multRotationZ, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
 import * as CUBE from '../../libs/objects/cube.js';
 import * as CYLINDER from '../../libs/objects/cylinder.js';
-
+import * as PYRAMID from '../../libs/objects/pyramid.js';
 /** @type WebGLRenderingContext */
 let gl;
 
@@ -23,6 +23,7 @@ let mView;
 let angleX = 0;
 let angleY = 0;
 let axonometric = true;
+let fpv = false;
 let movement = false;
 let helicopterAngle = 0;
 
@@ -48,30 +49,36 @@ function setup(shaders)
 
     mode = gl.TRIANGLES;
 
-    mView = lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]);
-
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
 
     document.onkeydown = function(event) {
         switch(event.key) {
             case '1':
+                fpv = false;
                 axonometric = true;
                 break;
             case '2':
                 // Front view
                 axonometric = false;
-                mView = lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]);
+                fpv = false;
+                mView = lookAt([0,0,1], [0,0,0], [0,1,0]);
                 break;
             case '3':
                 // Top view
                 axonometric = false;
+                fpv = false;
                 mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
                 break;
             case '4':
                 // Right view
                 axonometric = false;
-                mView = lookAt([CITY_WIDTH, 0, 0], [0, 0, 0], [0, 1, 0]);
+                fpv = false;
+                mView = lookAt([1, 0, 0], [0, 0, 0], [0, 1, 0]);
+                break;
+            case '5':
+                axonometric = false;
+                fpv = true;
                 break;
             case 'w':
                 mode = gl.LINES; 
@@ -151,6 +158,7 @@ function setup(shaders)
     SPHERE.init(gl);
     CUBE.init(gl);
     CYLINDER.init(gl);
+    PYRAMID.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
     
     window.requestAnimationFrame(render);
@@ -186,6 +194,8 @@ function setup(shaders)
             case "dark_green": gl.uniform3fv(color, vec3(0, 100/255, 0)); break;
             case "sidewalk_grey": gl.uniform3fv(color, vec3(216/255, 214/255, 205/255)); break;
             case "roof_tile": gl.uniform3fv(color, vec3(157/255, 96/255, 85/255)); break;
+            case "light_yellow": gl.uniform3fv(color, vec3(1, 1, 102/255)); break;
+            case "light_red": gl.uniform3fv(color, vec3(1, 204/255, 203/255)); break;
         }
     }
 
@@ -477,7 +487,7 @@ function setup(shaders)
         popMatrix();
 
         pushMatrix();
-            multTranslation([10, -16.75, 0]);
+            multTranslation([10, -16.5, 0]);
             buildingDoor();
         popMatrix();
     
@@ -558,7 +568,7 @@ function setup(shaders)
         }
     }
 
-    //EDIFICIOS EXTRA
+    // VIVENDAS
     function houseStructure(houseColor){
         multScale([15, 12, 12]);
         
@@ -582,34 +592,7 @@ function setup(shaders)
 
     }
 
-    function smallGlass(){
-        multScale([3,3,3]);
-
-        uploadModelView();
-        updateComponentColor("light_blue");
-        CUBE.draw(gl, program, mode);
-
-        updateComponentColor("black");
-        CUBE.draw(gl, program, gl.LINES);
-    }
-
-    function smallWindowFrame(){
-        multScale([0.5, 0.5, 0.5]);
-
-        uploadModelView();
-        updateComponentColor("light_blue");
-        CUBE.draw(gl, program, mode);
-
-        updateComponentColor("black");
-        CUBE.draw(gl, program, gl.LINES);
-    }
-
-    function smallWindow(){
-        pushMatrix();
-            smallGlass();
-        popMatrix();
-        
-    }
+    
 
     function smallHouse(color){
         pushMatrix();
@@ -628,15 +611,85 @@ function setup(shaders)
         popMatrix();   
         pushMatrix();
             multRotationY(-90);
-            multTranslation([5,0,5]);
-            smallWindow();
+            multScale([0.75, 0.75, 0.75]);
+            multTranslation([3.5, 1, 6.5]);
+            buildingWindow();
         popMatrix();
+        
         pushMatrix();
-            multRotationY(-90);
-            multTranslation([5,0,-5]);
-            smallWindow();
+        multRotationY(-90);
+        multScale([0.75, 0.75, 0.75]);
+        multTranslation([3.5, 1, -6.5]);
+        buildingWindow();
+        popMatrix();
     }
 
+    // ARVORES DE NATAL
+    function treeLog(){
+        multScale([2, 8, 2]);
+        
+        uploadModelView();
+        updateComponentColor("brown");
+        CUBE.draw(gl, program, mode);
+
+        updateComponentColor("black");
+        CUBE.draw(gl,program, gl.LINES);
+    }
+
+    function treeBranches(){
+        multScale([6,10,6]);
+
+        uploadModelView();
+        updateComponentColor("dark_green");
+        PYRAMID.draw(gl, program, mode);
+
+        updateComponentColor("black");
+        PYRAMID.draw(gl,program, gl.LINES);
+    }
+
+    function treeDecoration(color){
+        multScale([1, 1, 1]);
+
+        uploadModelView();
+        updateComponentColor(color);
+        SPHERE.draw(gl, program, mode);
+    }
+
+    function christmasTree(){
+        pushMatrix();
+            treeLog();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0,6,0]);
+            treeBranches();
+        popMatrix();
+        for(let i=0; i<4; i++){
+            multRotationY(90 * i);
+            pushMatrix();
+                multTranslation([1.5,7,0]);
+                treeDecoration("red");
+            popMatrix();
+            pushMatrix();
+                multTranslation([2,5,1]);
+                treeDecoration("yellow");
+            popMatrix();
+            pushMatrix();
+                multTranslation([2,5,-1]);
+                treeDecoration("red");
+            popMatrix();
+            pushMatrix();
+                multTranslation([2.5, 3, 1.5]);
+                treeDecoration("red");
+            popMatrix();
+            pushMatrix();
+                multTranslation([2.5, 3, -1.5]);
+                treeDecoration("yellow");
+            popMatrix();
+        }
+    }
+
+
+// RUAS
     function mainStreet(){
         pushMatrix();
             let pavementSize = 100;
@@ -684,6 +737,20 @@ function setup(shaders)
             multTranslation([0, 6, -42.5]);
             smallHouse("white");
         popMatrix();
+        pushMatrix();
+            multTranslation([-20, 6, -42.5]);
+            smallHouse("light_yellow");
+        popMatrix();
+        pushMatrix();
+            multTranslation([-40, 6, -42.5]);
+            smallHouse("light_red");
+        popMatrix();
+        for (let i=0; i<8; i++){
+            pushMatrix();
+                multTranslation([40 , 4, 40 - i*12]);
+                christmasTree();
+            popMatrix();
+        }
     }
 
     function render()
@@ -707,22 +774,33 @@ function setup(shaders)
             angleX = document.getElementById("sliderX").value;
             angleY = document.getElementById("sliderY").value;
             mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
+            //mView = mult(rotateY(angleY), mult(rotateX(angleX), lookAt([0,0,1], [0,0,0], [0,1,0])));
         }
-        loadMatrix(mView);
+        // TENTATIVAS DE FPV
+        //mView = mult(lookAt([0,0,0], [0,0,0], [0,1,0]), mult(translate(-30, -height, 0), rotateY(-helicopterAngle))); // tentativa mais próxima de 1a pessoa
+        //mView = mult(translate(-30, -height, 0), mult(rotateY(-helicopterAngle), lookAt([0,0,0], [0,0,0], [0,1,0])));
+        //mView = mult(rotateY(-helicopterAngle), mult(translate(-30, -height - 4, 0), mult(scalem(4,4,4), rotateY(0))));
+        //mView = mult(translate(0,0,0), mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))));
+        else if (fpv) {
+            mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle)));
+        }
+        
 
+        loadMatrix(mView);
         //console.log(movement);
         //console.log(currentSpeed);
-
         pushMatrix();
                 multRotationY(helicopterAngle);
-            if(boxValue){
+            if(boxValue){ // se existir uma caixa
                 pushMatrix();
-                    multRotationY(boxPosition - helicopterAngle);
-                    multTranslation([30, boxHeight-boxTime, 0]);
-                    //multTranslation([0,-boxTime,0]);
-                    if(boxHeight-boxTime > 2) {
+                    multRotationY(boxPosition - helicopterAngle); // para não seguir o helicóptero
+                    // multTranslation([30, boxHeight-boxTime, 0]); // descomentar
+                    multTranslation([30,boxHeight,0]); // teste
+                    // if(boxHeight-boxTime > 2) { // descomentar
+                    if (boxHeight > 1.75) {
                         boxTime = boxTime*1.1;
                         boxHeight -= boxTime;
+                        if (boxHeight < 1.75) boxHeight = 1.75;
                     }
                     console.log("Box height = " + boxHeight); // debug
                     box();
