@@ -15,10 +15,11 @@ let currentSpeed = 0;
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 let height = 0;
-let boxHeight;
-let boxValue = false;
-let boxTime;
-let boxPosition;
+let boxHeight = [];
+let boxValue = [];
+let boxIndex = 0;
+let boxTime = [];
+let boxPosition = [];
 let mView;
 let angleX = 0;
 let angleY = 0;
@@ -26,6 +27,8 @@ let axonometric = true;
 let fpv = false;
 let movement = false;
 let helicopterAngle = 0;
+let maxBoxes = 1;
+let input = false;
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -33,8 +36,6 @@ const MIN_SPEED = 0;
 const INCLINE_MULTIPLIER = 10;    //So that the maximum incline the helicopter can have is 30 degrees
 const MAX_HEIGHT = 35;
 const MIN_HEIGHT = 0;
-
-
 
 function setup(shaders)
 {
@@ -52,107 +53,151 @@ function setup(shaders)
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
 
-    document.onkeydown = function(event) {
-        switch(event.key) {
-            case '1':
-                fpv = false;
-                axonometric = true;
-                break;
-            case '2':
-                // Front view
-                axonometric = false;
-                fpv = false;
-                mView = lookAt([0,0,1], [0,0,0], [0,1,0]);
-                break;
-            case '3':
-                // Top view
-                axonometric = false;
-                fpv = false;
-                mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
-                break;
-            case '4':
-                // Right view
-                axonometric = false;
-                fpv = false;
-                mView = lookAt([1, 0, 0], [0, 0, 0], [0, 1, 0]);
-                break;
-            case '5':
-                axonometric = false;
-                fpv = true;
-                break;
-            case 'w':
-                mode = gl.LINES; 
-                break;
-            case 's':
-                mode = gl.TRIANGLES;
-                break;
-            case 'p':
-                animation = !animation;
-                break;
-            case '+':
-                if(animation && speed + 0.2 <= MAX_SPEED) speed += 0.2;
-                break;
-            case '-':
-                if(animation && speed - 0.2 >= MIN_SPEED) speed -= 0.2;
-                break;
-            case "ArrowUp":
-                if(animation && height + 0.2 <= MAX_HEIGHT) height += 0.2;
-                break;
-            case "ArrowDown":
-                if(animation && height - 0.2 >= MIN_HEIGHT) height -= 0.2;
-                break;
-            case "ArrowLeft":
-                movement = true;
-                break;
-            case " ":
-                if (!boxValue && height >= 4) {         
-                    boxTime = 0.1;     
-                    boxHeight = height;
-                    boxValue = true;
-                    boxPosition = helicopterAngle;
-                    setTimeout(hideBox, 5000);
-                }
-                break;
-               /*case "d":
-                   if(angleY == 0) {
-                       angleY = 359;
-                   } else{
-                   angleY -= 1;
-                   }
-                   mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                   break;
-               case "a":
-                   if(angleY == 359) {
-                       angleY = 0;
-                   } else{
-                       angleY += 1;
-                   }
-                   mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                   break;
-               case "s":
-                   if(angleX == 0) {
-                       angleX = 359;
-                   } else{
-                       angleX -= 1;
-                   }
-                   mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                   break;
-               case "w":
-                   if(angleX == 359) {
-                       angleX = 0;
-                   } else{
-                       angleX += 1;
-                   }
-                   mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-                   break;*/
-        }
-        //movement = false;
+    for(let i = 0; i < maxBoxes; i++) {
+        boxValue[i] = false;
+        console.log(i + " - " + boxValue[i]);
     }
+
+    document.onkeydown = function(event) {
+        if (!input) {
+            switch(event.key) {
+                case '1':
+                    fpv = false;
+                    axonometric = true;
+                    break;
+                case '2':
+                    // Front view
+                    axonometric = false;
+                    fpv = false;
+                    mView = lookAt([0,0,1], [0,0,0], [0,1,0]);
+                    break;
+                case '3':
+                    // Top view
+                    axonometric = false;
+                    fpv = false;
+                    mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
+                    break;
+                case '4':
+                    // Right view
+                    axonometric = false;
+                    fpv = false;
+                    mView = lookAt([1, 0, 0], [0, 0, 0], [0, 1, 0]);
+                    break;
+                case '5':
+                    axonometric = false;
+                    fpv = true;
+                    break;
+                case 'w':
+                    mode = gl.LINES; 
+                    break;
+                case 's':
+                    mode = gl.TRIANGLES;
+                    break;
+                case 'p':
+                    animation = !animation;
+                    break;
+                case '+':
+                    if(animation && speed + 0.2 <= MAX_SPEED) speed += 0.2;
+                    break;
+                case '-':
+                    if(animation && speed - 0.2 >= MIN_SPEED) speed -= 0.2;
+                    break;
+                case "ArrowUp":
+                    if(animation && height + 0.2 <= MAX_HEIGHT) height += 0.2;
+                    break;
+                case "ArrowDown":
+                    if(animation && height - 0.2 >= MIN_HEIGHT) height -= 0.2;
+                    break;
+                case "ArrowLeft":
+                    movement = true;
+                    break;
+                case " ":
+                    if (height >= 4) {
+                        updateIndex();
+                        if(!boxValue[boxIndex]) {
+                            boxTime[boxIndex] = 0.1;
+                            boxHeight[boxIndex] = height;
+                            boxValue[boxIndex] = true;
+                            boxPosition[boxIndex] = helicopterAngle;
+                            setTimeout(hideBox, 5000, boxIndex);
+                        }
+                    }
+                    break;
+            }
+        }
+        else {
+            if (event.key == "Enter") input = false;
+        }
+    }
+
     document.onkeyup = function(event) {
-        if(event.key == "ArrowLeft") {
+        if (event.key == "ArrowLeft") {
             movement = false;
         }
     }
+
+    // TESTE //
+
+    const textInputs = document.getElementsByClassName("textInputs");
+    for(let i = 0; i < textInputs.length; i++) {
+        textInputs[i].addEventListener("click", function() {
+            input = true;
+            console.log(input);
+        })
+
+        textInputs[i].addEventListener("change", function() {
+            input = false;
+            console.log(input);
+        })
+
+    }
+
+    document.querySelector("canvas").addEventListener("click", function() {
+        input = false;
+        console.log(input);
+    })
+
+    document.getElementById("textInputX").addEventListener("input", function() {
+        document.getElementById("sliderX").value = this.value;
+        angleX = this.value;
+        fpv = false;
+        axonometric = true;
+    })
+
+    document.getElementById("sliderX").addEventListener("input", function() {
+        document.getElementById("textInputX").value = this.value;
+        angleX = this.value;
+        fpv = false;
+        axonometric = true;
+    })
+
+    document.getElementById("textInputY").addEventListener("input", function() {
+        document.getElementById("sliderY").value = this.value;
+        angleY = this.value;
+        fpv = false;
+        axonometric = true;
+    })
+
+    document.getElementById("sliderY").addEventListener("input", function() {
+        document.getElementById("textInputY").value = this.value;
+        angleY = this.value;
+        fpv = false;
+        axonometric = true;
+    })
+
+    document.getElementById("textInputBoxes").addEventListener("input", function() {
+        document.getElementById("sliderBoxes").value = this.value;
+        maxBoxes = this.value;
+    })
+
+    document.getElementById("sliderBoxes").addEventListener("input", function() {
+        document.getElementById("textInputBoxes").value = this.value;
+        maxBoxes = this.value;
+    })
+
+    
+
+    // TESTE //
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     SPHERE.init(gl);
@@ -163,6 +208,13 @@ function setup(shaders)
     
     window.requestAnimationFrame(render);
 
+    function updateIndex() {
+        let i = 0;
+        while(i < maxBoxes && boxValue[i]) {
+            i++
+        }
+        boxIndex = i;
+    }
 
     function resize_canvas(event)
     {
@@ -401,8 +453,8 @@ function setup(shaders)
         CUBE.draw(gl, program, gl.LINE_LOOP);
     }
 
-    function hideBox() {
-        boxValue = false;
+    function hideBox(index) {
+        boxValue[index] = false;
     }
 
     //CIDADE
@@ -765,16 +817,9 @@ function setup(shaders)
         gl.useProgram(program);
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
-    
-        //loadMatrix(lookAt([0,CITY_WIDTH/2,CITY_WIDTH], [0,0,0], [0,1,0])); // vista meio de cima
-        //loadMatrix(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0])); // vista lateral
-        //loadMatrix(lookAt([CITY_WIDTH,0,0], [0,0,0], [0,1,0])); // vista frontal
-        //loadMatrix(lookAt([CITY_WIDTH,CITY_WIDTH*3/4,CITY_WIDTH], [0,0,0], [0,1,0]));
+
         if (axonometric) {
-            angleX = document.getElementById("sliderX").value;
-            angleY = document.getElementById("sliderY").value;
             mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-            //mView = mult(rotateY(angleY), mult(rotateX(angleX), lookAt([0,0,1], [0,0,0], [0,1,0])));
         }
         // TENTATIVAS DE FPV
         //mView = mult(lookAt([0,0,0], [0,0,0], [0,1,0]), mult(translate(-30, -height, 0), rotateY(-helicopterAngle))); // tentativa mais próxima de 1a pessoa
@@ -782,33 +827,41 @@ function setup(shaders)
         //mView = mult(rotateY(-helicopterAngle), mult(translate(-30, -height - 4, 0), mult(scalem(4,4,4), rotateY(0))));
         //mView = mult(translate(0,0,0), mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))));
         else if (fpv) {
-            mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle)));
+            mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
+            //mView = mult(scalem(32,32,32), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle)));
+            //let v = mult(rotateY(-helicopterAngle), mult(translate(30, -height-2, 0), scalem(2,2,2)));
+            //let tmp = vec4(0,0,0,1);
+            //let eye = mult(v, tmp);
+            //mView = lookAt([eye[0], eye[1], eye[2]], [0,0,0], [0,1,0]);
         }
-        
+
+        //maxBoxes = document.getElementById("sliderBoxes").value;
+        //document.getElementById("maxNumOfBoxes").innerHTML = maxBoxes;
 
         loadMatrix(mView);
-        //console.log(movement);
-        //console.log(currentSpeed);
+
         pushMatrix();
                 multRotationY(helicopterAngle);
-            if(boxValue){ // se existir uma caixa
-                pushMatrix();
-                    multRotationY(boxPosition - helicopterAngle); // para não seguir o helicóptero
-                    // multTranslation([30, boxHeight-boxTime, 0]); // descomentar
-                    multTranslation([30,boxHeight,0]); // teste
-                    // if(boxHeight-boxTime > 2) { // descomentar
-                    if (boxHeight > 1.75) {
-                        boxTime = boxTime*1.1;
-                        boxHeight -= boxTime;
-                        if (boxHeight < 1.75) boxHeight = 1.75;
-                    }
-                    console.log("Box height = " + boxHeight); // debug
-                    box();
-                popMatrix();
+            for (let i = 0; i < maxBoxes; i++) {
+                if (boxValue[i]) { // se houver um slot de caixa livre
+                    pushMatrix();
+                        multRotationY(boxPosition[i] - helicopterAngle); // para não seguir o helicóptero
+                        // multTranslation([30, boxHeight-boxTime, 0]); // descomentar
+                        multTranslation([30,boxHeight[i],0]); // teste
+                        // if(boxHeight-boxTime > 2) { // descomentar
+                        if (boxHeight[i] > 1.75) {
+                            boxTime[i] = boxTime[i]*1.1;
+                            boxHeight[i] -= boxTime[i];
+                            if (boxHeight[i] < 1.75) boxHeight[i] = 1.75;
+                        }
+                        console.log("Box" + i + "height = " + boxHeight[i]); // debug
+                        box();
+                    popMatrix();
+                }
             }
-            multTranslation([30, height + 4, 0]); // 4 para que as bases do helicoptero toquem no chao quando a altura é 0
-            multScale([0.25, 0.25, 0.25]);
-            //multScale([0.4, 0.4, 0.4]);
+            multTranslation([30, height + 6, 0]); // 6 para que as bases do helicoptero toquem no chao quando a altura é y=0
+            //multScale([0.25, 0.25, 0.25]); ESCALA ORIGINAL
+            multScale([0.4,0.4,0.4]);
             multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
             if (movement) {
                 if (currentSpeed < speed) currentSpeed+=0.05;
