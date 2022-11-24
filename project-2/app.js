@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten, vec3, mult, rotateX, rotateY, translate, scalem } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, vec3, vec4, mult, rotateX, rotateY, translate, scalem, inverse } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationX, multRotationY, multRotationZ, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -19,7 +19,7 @@ let boxHeight = [];
 let boxValue = [];
 let boxIndex = 0;
 let boxTime = [];
-let boxPosition = [];
+let boxAngle = [];
 let mView;
 let angleX = 0;
 let angleY = 0;
@@ -29,6 +29,10 @@ let movement = false;
 let helicopterAngle = 0;
 let maxBoxes = 1;
 let input = false;
+let point;
+let mModel;
+let boxPoint = [];
+let fpvAt;
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -115,10 +119,11 @@ function setup(shaders)
                     if (height >= 4) {
                         updateIndex();
                         if(!boxValue[boxIndex]) {
+                            boxPoint[boxIndex] = point;
                             boxTime[boxIndex] = 0.1;
                             boxHeight[boxIndex] = height;
                             boxValue[boxIndex] = true;
-                            boxPosition[boxIndex] = helicopterAngle;
+                            boxAngle[boxIndex] = helicopterAngle;
                             setTimeout(hideBox, 5000, boxIndex);
                         }
                     }
@@ -676,6 +681,69 @@ function setup(shaders)
         popMatrix();
     }
 
+    // HELIPORTO
+    function heliportFloor(){
+        multScale([15, 0.5, 15]);
+
+        uploadModelView();
+        updateComponentColor("grey");
+        CUBE.draw(gl, program, mode);
+
+        updateComponentColor("black");
+        CUBE.draw(gl,program, gl.LINES);
+
+    }
+
+    function heliportOutsideCircle(){
+        multScale([13, 0.51, 13]);
+
+        uploadModelView();
+        updateComponentColor("white");
+        CYLINDER.draw(gl, program, mode);
+
+    }
+    function heliportInsideCircle(){
+        multScale([11, 0.52, 11]);
+
+        uploadModelView();
+        updateComponentColor("grey");
+        CYLINDER.draw(gl, program, mode);
+
+    }
+
+    function heliportHSymbolPart(){
+        multScale([6, 0.53, 1]);
+
+        uploadModelView();
+        updateComponentColor("white");
+        CUBE.draw(gl, program, mode);
+
+    }
+
+    function heliport(){
+        pushMatrix();
+            heliportFloor();
+        popMatrix();
+        pushMatrix();
+            heliportOutsideCircle();
+        popMatrix();
+        pushMatrix();
+            heliportInsideCircle();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0,0,-2.5]);
+            heliportHSymbolPart();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0,0,2.5]);
+            heliportHSymbolPart();
+        popMatrix();
+        pushMatrix();
+            multRotationY(90);
+            heliportHSymbolPart();
+        popMatrix();
+    }
+
     // ARVORES DE NATAL
     function treeLog(){
         multScale([2, 8, 2]);
@@ -786,10 +854,6 @@ function setup(shaders)
             secondaryStreet();
         popMatrix();
         pushMatrix();
-            multTranslation([0, 6, -42.5]);
-            smallHouse("white");
-        popMatrix();
-        pushMatrix();
             multTranslation([-20, 6, -42.5]);
             smallHouse("light_yellow");
         popMatrix();
@@ -803,7 +867,18 @@ function setup(shaders)
                 christmasTree();
             popMatrix();
         }
+        pushMatrix();
+            multTranslation([0, 0.5, 30]);
+            heliport();
+        popMatrix();
     }
+
+    function updatePoint(){
+        mModel = mult(inverse(mView), modelView());
+        point = mult(mModel, vec4(0,0,0,1));
+    }
+
+  
 
     function render()
     {
@@ -827,7 +902,10 @@ function setup(shaders)
         //mView = mult(rotateY(-helicopterAngle), mult(translate(-30, -height - 4, 0), mult(scalem(4,4,4), rotateY(0))));
         //mView = mult(translate(0,0,0), mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))));
         else if (fpv) {
-            mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
+            //mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
+            fpvAt = mult(mModel, vec4(0.0,0.0,2.0,1.0));
+            mView = lookAt([point[0], point[1], point[2]], [fpvAt[0], fpvAt[1], fpvAt[2]], [0,1,0]);
+            mView = mult(translate(0,40,0), mult(scalem(40,40,40), mult(rotateY(90), mView)));
             //mView = mult(scalem(32,32,32), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle)));
             //let v = mult(rotateY(-helicopterAngle), mult(translate(30, -height-2, 0), scalem(2,2,2)));
             //let tmp = vec4(0,0,0,1);
@@ -841,27 +919,10 @@ function setup(shaders)
         loadMatrix(mView);
 
         pushMatrix();
-                multRotationY(helicopterAngle);
-            for (let i = 0; i < maxBoxes; i++) {
-                if (boxValue[i]) { // se houver um slot de caixa livre
-                    pushMatrix();
-                        multRotationY(boxPosition[i] - helicopterAngle); // para não seguir o helicóptero
-                        // multTranslation([30, boxHeight-boxTime, 0]); // descomentar
-                        multTranslation([30,boxHeight[i],0]); // teste
-                        // if(boxHeight-boxTime > 2) { // descomentar
-                        if (boxHeight[i] > 1.75) {
-                            boxTime[i] = boxTime[i]*1.1;
-                            boxHeight[i] -= boxTime[i];
-                            if (boxHeight[i] < 1.75) boxHeight[i] = 1.75;
-                        }
-                        console.log("Box" + i + "height = " + boxHeight[i]); // debug
-                        box();
-                    popMatrix();
-                }
-            }
+            multRotationY(helicopterAngle);
             multTranslation([30, height + 6, 0]); // 6 para que as bases do helicoptero toquem no chao quando a altura é y=0
-            //multScale([0.25, 0.25, 0.25]); ESCALA ORIGINAL
-            multScale([0.4,0.4,0.4]);
+            //multScale([0.25, 0.25, 0.25]); // ESCALA ORIGINAL
+            //multScale([0.4,0.4,0.4]);
             multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
             if (movement) {
                 if (currentSpeed < speed) currentSpeed+=0.05;
@@ -872,8 +933,26 @@ function setup(shaders)
                 if (currentSpeed < 0) currentSpeed = 0;
             }
             multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicoptero inclina consoante a velocidade
+
+            updatePoint();
+            multScale([0.4,0.4,0.4]);
             helicoptero();
         popMatrix();
+        for (let i = 0; i < maxBoxes; i++) {
+            pushMatrix();
+            if (boxValue[i]) {
+                multTranslation([boxPoint[i][0], boxHeight[i], boxPoint[i][2]]);
+                multRotationY(boxAngle[i]);
+                        if (boxHeight[i] > 1.75) {
+                            boxTime[i] = boxTime[i]*1.1;
+                            boxHeight[i] -= boxTime[i];
+                            if (boxHeight[i] < 1.75) boxHeight[i] = 1.75;
+                        }
+                box();
+                console.log(point);
+            }
+            popMatrix();
+        }
         pushMatrix();
             soil();
         popMatrix();
