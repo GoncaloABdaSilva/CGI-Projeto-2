@@ -863,7 +863,7 @@ function setup(shaders)
         popMatrix();
         for (let i=0; i<8; i++){
             pushMatrix();
-                multTranslation([40 , 4, 40 - i*12]);
+                multTranslation([42.5 , 4, 40 - i*12]);
                 christmasTree();
             popMatrix();
         }
@@ -877,9 +877,6 @@ function setup(shaders)
         mModel = mult(inverse(mView), modelView());
         point = mult(mModel, vec4(0,0,0,1));
     }
-
-  
-
     function render()
     {
         if(animation) time += speed;
@@ -962,6 +959,11 @@ function setup(shaders)
         popMatrix();
         pushMatrix();
             neighbourhood();
+        popMatrix();
+        pushMatrix();
+            multRotationY(220);
+            multTranslation([30, 0, 0]);
+            heliporto();
         popMatrix();
     }
 }
