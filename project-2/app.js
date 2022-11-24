@@ -19,7 +19,7 @@ let boxHeight = [];
 let boxValue = [];
 let boxIndex = 0;
 let boxTime = [];
-let boxPosition = [];
+let boxAngle = [];
 let mView;
 let angleX = 0;
 let angleY = 0;
@@ -32,6 +32,7 @@ let input = false;
 let point;
 let mModel;
 let boxPoint = [];
+let fpvAt;
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -122,7 +123,7 @@ function setup(shaders)
                             boxTime[boxIndex] = 0.1;
                             boxHeight[boxIndex] = height;
                             boxValue[boxIndex] = true;
-                            boxPosition[boxIndex] = helicopterAngle;
+                            boxAngle[boxIndex] = helicopterAngle;
                             setTimeout(hideBox, 5000, boxIndex);
                         }
                     }
@@ -860,7 +861,10 @@ function setup(shaders)
         //mView = mult(rotateY(-helicopterAngle), mult(translate(-30, -height - 4, 0), mult(scalem(4,4,4), rotateY(0))));
         //mView = mult(translate(0,0,0), mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))));
         else if (fpv) {
-            mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
+            //mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
+            fpvAt = mult(mModel, vec4(0.0,0.0,2.0,1.0));
+            mView = lookAt([point[0], point[1], point[2]], [fpvAt[0], fpvAt[1], fpvAt[2]], [0,1,0]);
+            mView = mult(translate(0,40,0), mult(scalem(40,40,40), mult(rotateY(90), mView)));
             //mView = mult(scalem(32,32,32), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle)));
             //let v = mult(rotateY(-helicopterAngle), mult(translate(30, -height-2, 0), scalem(2,2,2)));
             //let tmp = vec4(0,0,0,1);
@@ -897,6 +901,7 @@ function setup(shaders)
             pushMatrix();
             if (boxValue[i]) {
                 multTranslation([boxPoint[i][0], boxHeight[i], boxPoint[i][2]]);
+                multRotationY(boxAngle[i]);
                         if (boxHeight[i] > 1.75) {
                             boxTime[i] = boxTime[i]*1.1;
                             boxHeight[i] -= boxTime[i];
