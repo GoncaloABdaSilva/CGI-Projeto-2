@@ -33,6 +33,8 @@ let point;
 let mModel;
 let boxPoint = [];
 let fpvAt;
+let boxSpeedZ = [];
+let boxPositionZ = [];
 
 const CITY_WIDTH = 50;
 const MAX_SPEED = 3;
@@ -124,6 +126,8 @@ function setup(shaders)
                             boxHeight[boxIndex] = height;
                             boxValue[boxIndex] = true;
                             boxAngle[boxIndex] = helicopterAngle;
+                            boxSpeedZ[boxIndex] = currentSpeed;
+                            boxPositionZ[boxIndex] = 0;
                             setTimeout(hideBox, 5000, boxIndex);
                         }
                     }
@@ -938,12 +942,15 @@ function setup(shaders)
         for (let i = 0; i < maxBoxes; i++) {
             pushMatrix();
             if (boxValue[i]) {
-                multTranslation([boxPoint[i][0], boxHeight[i], boxPoint[i][2]]);
+                multTranslation([boxPoint[i][0], boxPoint[i][1]-2, boxPoint[i][2]]);
                 multRotationY(boxAngle[i]);
-                        if (boxHeight[i] > 1.75) {
+                multTranslation([0,0,-boxPositionZ[i]]);
+                        if (boxPoint[i][1]-2 > 1.75) {
                             boxTime[i] = boxTime[i]*1.1;
-                            boxHeight[i] -= boxTime[i];
-                            if (boxHeight[i] < 1.75) boxHeight[i] = 1.75;
+                            boxSpeedZ[i] = boxSpeedZ[i]*0.9;
+                            boxPositionZ[i] += boxSpeedZ[i];
+                            boxPoint[i][1] -= boxTime[i];
+                            if (boxPoint[i][1] < 1.75) boxPoint[i][1] = 1.75;
                         }
                 box();
                 console.log(point);
