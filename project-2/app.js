@@ -10,7 +10,7 @@ import * as PYRAMID from '../../libs/objects/pyramid.js';
 let gl;
 
 let time = 0;           // Global simulation time
-let speed = 1;     // Speed 
+let speed = 0;          // Speed 
 let currentSpeed = 0;
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
@@ -26,7 +26,7 @@ let angleY = 0;
 let axonometric = true;
 let fpv = false;
 let movement = false;
-let helicopterAngle = 0;
+let helicopterAngle = 270;
 let maxBoxes = 1;
 let input = false;
 let point;
@@ -145,7 +145,7 @@ function setup(shaders)
         }
     }
 
-    // TESTE //
+    // TEST //
 
     const textInputs = document.getElementsByClassName("textInputs");
     for(let i = 0; i < textInputs.length; i++) {
@@ -206,7 +206,7 @@ function setup(shaders)
 
     
 
-    // TESTE //
+    // TEST //
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     SPHERE.init(gl);
@@ -243,26 +243,29 @@ function setup(shaders)
 
     function updateComponentColor(newColor){
         const color = gl.getUniformLocation(program, "color");
+        let newColorVec3 = vec3();
         switch(newColor){
-            case "red": gl.uniform3fv(color, vec3(1,0,0)); break;
-            case "blue": gl.uniform3fv(color, vec3(0, 0, 1)); break;
-            case "yellow": gl.uniform3fv(color, vec3(1, 1, 0)); break;
-            case "grey": gl.uniform3fv(color, vec3(0.5, 0.5 , 0.5)); break;
-            case "white": gl.uniform3fv(color, vec3(1, 1, 1)); break;
-            case "black": gl.uniform3fv(color, vec3(0,0,0)); break;
-            case "light_blue": gl.uniform3fv(color, vec3(55/255, 198/255, 1)); break;
-            case "brown": gl.uniform3fv(color, vec3(150/255,75/255,0)); break;
-            case "dark_green": gl.uniform3fv(color, vec3(0, 100/255, 0)); break;
-            case "sidewalk_grey": gl.uniform3fv(color, vec3(216/255, 214/255, 205/255)); break;
-            case "roof_tile": gl.uniform3fv(color, vec3(157/255, 96/255, 85/255)); break;
-            case "light_yellow": gl.uniform3fv(color, vec3(1, 1, 102/255)); break;
-            case "light_red": gl.uniform3fv(color, vec3(1, 204/255, 203/255)); break;
+            case "red": newColorVec3 = vec3(1,0,0); break;
+            case "blue": newColorVec3 = vec3(0, 0, 1); break;
+            case "yellow": newColorVec3 = vec3(1, 1, 0); break;
+            case "grey": newColorVec3 = vec3(0.5, 0.5 , 0.5); break;
+            case "white": newColorVec3 = vec3(1, 1, 1); break;
+            case "black": newColorVec3 = vec3(0,0,0); break;
+            case "light_blue": newColorVec3 = vec3(55/255, 198/255, 1); break;
+            case "brown": newColorVec3 = vec3(150/255,75/255,0); break;
+            case "dark_green": newColorVec3 = vec3(0, 100/255, 0); break;
+            case "sidewalk_grey": newColorVec3 = vec3(216/255, 214/255, 205/255); break;
+            case "roof_tile": newColorVec3 = vec3(157/255, 96/255, 85/255); break;
+            case "light_yellow": newColorVec3 = vec3(1, 1, 1/255); break;
+            case "light_red": newColorVec3 = vec3(1, 204/255, 203/255); break;
+            case "silver": newColorVec3 = vec3(170/255, 169/255, 173/255); break;
         }
+        gl.uniform3fv(color, newColorVec3);
     }
 
-    //HELICOPTERO
+    //HELICOPTER
 
-    function RotorDeHelice(){
+    function propelorRotor(){
         multScale([2/3,2.5,2/3]);
 
         uploadModelView();
@@ -270,79 +273,79 @@ function setup(shaders)
         CYLINDER.draw(gl, program, mode);
     }
 
-    function PaDeHelice(){
+    function propelorBlade(){
         multScale([16,1,1]);
 
         uploadModelView();
-        updateComponentColor("blue");
+        updateComponentColor("red");
         SPHERE.draw(gl, program, mode);
     }
 
-    // 3 helices
-    function Helice(){
+    // 3 propelor blades
+    function propelor(){
         pushMatrix();
-            RotorDeHelice();
+            propelorRotor();
         popMatrix();
         pushMatrix();
             multTranslation([0,1/2,0]);
             pushMatrix();
                 multTranslation([8,0,0]);
-                PaDeHelice();
+                propelorBlade();
             popMatrix();
             pushMatrix();
                 multRotationY(120);
                 multTranslation([8,0,0]);
-                PaDeHelice();
+                propelorBlade();
             popMatrix();
             pushMatrix();
                 multRotationY(240);
                 multTranslation([8,0,0]);
-                PaDeHelice();
+                propelorBlade();
             popMatrix();
         popMatrix();
     }
 
-    function frente() {
+    function cockpit() {
         multScale([20,10,10]);
 
         uploadModelView();
-        updateComponentColor("red");
+        updateComponentColor("silver");
         SPHERE.draw(gl, program, mode);
     }
 
-    function carenagem() { // estrutura entre a cabeça e cauda do helicóptero; não tenho a certeza se é assim que se chama
+    function tailBoom() { 
         multScale([20,3,2]);
 
         uploadModelView();
-        updateComponentColor("red");
+        updateComponentColor("silver");
         SPHERE.draw(gl, program, mode);
     }
 
-    function cauda() {
+    function tail() {
         multRotationZ(70);
         multScale([5,3,2]);
 
         uploadModelView();
-        updateComponentColor("red");
+        updateComponentColor("silver");
         SPHERE.draw(gl, program, mode);
     }
 
-    function partePrincipal() {
+    function mainPart() {
         pushMatrix();
             multTranslation([-1,-6.5,0]);
-            frente();
+            cockpit();
         popMatrix();
         pushMatrix();
             multTranslation([14,-5,0]);
-            carenagem();
+            tailBoom();
         popMatrix();
         pushMatrix();
             multTranslation([23,-3.5,0]);
-            cauda();
+            tail();
         popMatrix();
     }
 
-    function RotorDaCauda(){
+    function tailPropelorRotor(){
         multScale([2/3,1.5,2/3]);
 
         uploadModelView();
@@ -350,40 +353,40 @@ function setup(shaders)
         CYLINDER.draw(gl, program, mode);
     }
 
-    function PaDaCauda(){
+    function tailPropelorBlade(){
         multScale([3.5,0.5,0.5]);
 
         uploadModelView();
-        updateComponentColor("blue");
+        updateComponentColor("red");
         SPHERE.draw(gl, program, mode);
     }
 
-    function HeliceDaCauda(){
+    function tailPropelor(){
         pushMatrix();
-            RotorDaCauda();
+            tailPropelorRotor();
         popMatrix();
         pushMatrix();
             multTranslation([0,1/2,0]);
             pushMatrix();
                 multTranslation([1.5,0,0]);
-                PaDaCauda();
+                tailPropelorBlade();
             popMatrix();
             pushMatrix();
                 multTranslation([-1.5,0,0]);
-                PaDaCauda();
+                tailPropelorBlade();
             popMatrix();
         popMatrix();
     }
 
-    function perna(){
+    function helicopterLeg(){
         multScale([2/3,5,2/3]);
 
         uploadModelView();
-        updateComponentColor("grey");
+        updateComponentColor("blue");
         CUBE.draw(gl, program, mode);
     }
 
-    function apoio(){
+    function helicopterSupport(){
         multScale([1,20,1]);
 
         uploadModelView();
@@ -396,53 +399,53 @@ function setup(shaders)
             multTranslation([-5,-12,4]);
             multRotationX(-20);
             multRotationZ(-15);
-            perna();
+            helicopterLeg();
         popMatrix();
         pushMatrix();
             multTranslation([3,-12,4]);
             multRotationX(-20);
             multRotationZ(15);
-            perna();
+            helicopterLeg();
         popMatrix();
         pushMatrix();
             multTranslation([-5,-12,-4]);
             multRotationX(20);
             multRotationZ(-15);
-            perna();
+            helicopterLeg();
         popMatrix();
         pushMatrix();
             multTranslation([3,-12,-4]);
             multRotationX(20);
             multRotationZ(15);
-            perna();
+            helicopterLeg();
         popMatrix();
         pushMatrix();
             multTranslation([0,-14,4.8]);
             multRotationZ(90);
-            apoio();
+            helicopterSupport();
         popMatrix();
         pushMatrix();
             multTranslation([0,-14,-4.8]);
             multRotationZ(90);
-            apoio();
+            helicopterSupport();
         popMatrix();
     }
 
-    function helicoptero(){
+    function helicopter(){
         pushMatrix();
             pushMatrix();
                 multTranslation([0,-0.5,0]);
                 multRotationY(time*12);
-                Helice();
+                propelor();
             popMatrix()
             pushMatrix();
-                partePrincipal();
+                mainPart();
             popMatrix();
             pushMatrix();
                 multTranslation([23,-3.5,1]);
                 multRotationZ(time*12);
                 multRotationX(90);
-                HeliceDaCauda();
+                tailPropelor();
             popMatrix();
             pushMatrix();
                 base();
@@ -450,7 +453,7 @@ function setup(shaders)
         popMatrix();
     }
 
-    //CAIXA
+    // BOX
     function box(){
         multScale([2, 2, 2]);
 
@@ -466,8 +469,8 @@ function setup(shaders)
         boxValue[index] = false;
     }
 
-    //CIDADE
-    function soil(){
+    // CITY GROUND
+    function ground(){
         multScale([CITY_WIDTH * 2, 0.5, CITY_WIDTH * 2]);
 
         uploadModelView();
@@ -476,7 +479,7 @@ function setup(shaders)
     }
 
     
-    //EDIFICIO CENTRAL
+    // CENTRAL BUILDING
     function buildingStructure(){
         multScale([20, 40, 20]);
         
@@ -568,9 +571,9 @@ function setup(shaders)
     }
 
 
-    //ESTRADA E PASSEIO
+    // ROAD AND SIDEWALK
     function roadPavement(size){
-        multScale([15, 0.3, size]);
+        multScale([15, 0.2, size]);
 
         uploadModelView();
         updateComponentColor("black");
@@ -578,7 +581,7 @@ function setup(shaders)
     }
 
     function roadMark(){
-        multScale([1, 0.4, 5]);
+        multScale([1, 0.21, 5]);
 
         uploadModelView();
         updateComponentColor("white");
@@ -599,7 +602,7 @@ function setup(shaders)
     }
 
     function sideWalkTile(){
-        multScale([5, 0.3, 5]);
+        multScale([5, 0.2, 5]);
 
         uploadModelView();
         updateComponentColor("sidewalk_grey");
@@ -629,7 +632,7 @@ function setup(shaders)
         }
     }
 
-    // VIVENDAS
+    // SMALL HOUSE
     function houseStructure(houseColor){
         multScale([15, 12, 12]);
         
@@ -652,8 +655,6 @@ function setup(shaders)
         CUBE.draw(gl,program, gl.LINES);
 
     }
-
-    
 
     function smallHouse(color){
         pushMatrix();
@@ -685,9 +686,9 @@ function setup(shaders)
         popMatrix();
     }
 
-    // HELIPORTO
+    // HELIPORT
     function heliportFloor(){
-        multScale([15, 0.5, 15]);
+        multScale([15, 0.1, 15]);
 
         uploadModelView();
         updateComponentColor("grey");
@@ -699,7 +700,7 @@ function setup(shaders)
     }
 
     function heliportOutsideCircle(){
-        multScale([13, 0.51, 13]);
+        multScale([13, 0.11, 13]);
 
         uploadModelView();
         updateComponentColor("white");
@@ -707,7 +708,7 @@ function setup(shaders)
 
     }
     function heliportInsideCircle(){
-        multScale([11, 0.52, 11]);
+        multScale([11, 0.12, 11]);
 
         uploadModelView();
         updateComponentColor("grey");
@@ -716,7 +717,7 @@ function setup(shaders)
     }
 
     function heliportHSymbolPart(){
-        multScale([6, 0.53, 1]);
+        multScale([6, 0.13, 1]);
 
         uploadModelView();
         updateComponentColor("white");
@@ -748,7 +749,7 @@ function setup(shaders)
         popMatrix();
     }
 
-    // ARVORES DE NATAL
+    // CHRISTMAS TREE
     function treeLog(){
         multScale([2, 8, 2]);
         
@@ -813,7 +814,7 @@ function setup(shaders)
     }
 
 
-// RUAS
+// STREETS
     function mainStreet(){
         pushMatrix();
             let pavementSize = 100;
@@ -846,7 +847,6 @@ function setup(shaders)
         popMatrix();
     }
 
-
     function neighbourhood(){
         pushMatrix();
             multTranslation([22.5,0.2,0]);
@@ -872,15 +872,17 @@ function setup(shaders)
             popMatrix();
         }
         pushMatrix();
-            multTranslation([0, 0.5, 30]);
+            multTranslation([0, 0.25, 30]);
             heliport();
         popMatrix();
     }
+
 
     function updatePoint(){
         mModel = mult(inverse(mView), modelView());
         point = mult(mModel, vec4(0,0,0,1));
     }
+
     function render()
     {
         if(animation) time += speed;
@@ -920,24 +922,25 @@ function setup(shaders)
         loadMatrix(mView);
 
         pushMatrix();
-            multRotationY(helicopterAngle);
-            multTranslation([30, height + 6, 0]); // 6 para que as bases do helicoptero toquem no chao quando a altura é y=0
-            //multScale([0.25, 0.25, 0.25]); // ESCALA ORIGINAL
+            multRotationY(helicopterAngle);         
+            multTranslation([30, height + 6.2, 0]); // 6.2 so that helicopter bases are just above the ground when height = 0
+            //multScale([0.25, 0.25, 0.25]); // ORIGINAL SCALE
             //multScale([0.4,0.4,0.4]);
-            multRotationY(-90);      // para que o helicoptero fique a olhar para a frente e nao para o centro
+            multRotationY(-90);      // makes the helicopter face forward rather than to the center building
             if (movement) {
                 if (currentSpeed < speed) currentSpeed+=0.05;
                 if (currentSpeed > speed) currentSpeed = speed;
+                if (height <= 1.5) height += speed/20;
             }
             else {
                 if (currentSpeed > 0) currentSpeed-=0.05;
                 if (currentSpeed < 0) currentSpeed = 0;
             }
-            multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicoptero inclina consoante a velocidade
+            multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicopter tilts accordingly to speed
 
             updatePoint();
             multScale([0.4,0.4,0.4]);
-            helicoptero();
+            helicopter();
         popMatrix();
         for (let i = 0; i < maxBoxes; i++) {
             pushMatrix();
@@ -958,7 +961,7 @@ function setup(shaders)
             popMatrix();
         }
         pushMatrix();
-            soil();
+            ground();
         popMatrix();
         pushMatrix();
             multTranslation([0, 20, 0]);
@@ -970,7 +973,7 @@ function setup(shaders)
         pushMatrix();
             multRotationY(220);
             multTranslation([30, 0, 0]);
-            heliporto();
+            heliport();
         popMatrix();
     }
 }
