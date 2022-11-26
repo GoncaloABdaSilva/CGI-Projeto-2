@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten, vec3, vec4, mult, rotateX, rotateY, translate, scalem, inverse } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, vec3, vec4, mult, rotateX, rotateY, rotateZ, translate, scalem, inverse } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationX, multRotationY, multRotationZ, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -948,7 +948,7 @@ function setup(shaders)
     function firstPersonView() {
         fpvAt = mult(mModel, vec4(0,0,1,1));
         mView = lookAt([point[0],point[1],point[2]], [fpvAt[0],fpvAt[1],fpvAt[2]], [0,1,0]); // CLOSEST
-        mView = mult(scalem(4,4,4), mult(rotateY(90), mView));
+        mView = mult(scalem(4,4,4), mult(rotateY(90), mult(rotateZ(currentSpeed*INCLINE_MULTIPLIER), mView)));
     }
 
     function render() { 
