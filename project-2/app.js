@@ -59,7 +59,7 @@ function setup(shaders)
 
     let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
 
-    let mProjection = ortho(-CITY_WIDTH*aspect,CITY_WIDTH*aspect, -CITY_WIDTH, CITY_WIDTH,-3*CITY_WIDTH,3*CITY_WIDTH);
+    let mProjection = ortho(-CITY_WIDTH*aspect,CITY_WIDTH*aspect, -CITY_WIDTH, CITY_WIDTH,-6*CITY_WIDTH,6*CITY_WIDTH);
 
     mode = gl.TRIANGLES;
 
@@ -244,7 +244,7 @@ function setup(shaders)
         aspect = canvas.width / canvas.height;
 
         gl.viewport(0,0,canvas.width, canvas.height);
-        mProjection = ortho(-CITY_WIDTH*aspect,CITY_WIDTH*aspect, -CITY_WIDTH, CITY_WIDTH,-3*CITY_WIDTH,3*CITY_WIDTH);
+        mProjection = ortho(-CITY_WIDTH*aspect,CITY_WIDTH*aspect, -CITY_WIDTH, CITY_WIDTH,-6*CITY_WIDTH,6*CITY_WIDTH);
     }
 
     function uploadModelView()
@@ -935,20 +935,26 @@ function setup(shaders)
 
     function move() {
         if (movement) {
-            if (currentSpeed < MAX_SPEED) currentSpeed+=SPEED_CHANGE;
+            if (currentSpeed < MAX_SPEED) currentSpeed += SPEED_CHANGE;
             if (currentSpeed > MAX_SPEED) currentSpeed = MAX_SPEED;
             if (height < MIN_MOVEMENT_HEIGHT) height += MIN_HEIGHT;
         }
         else {
-            if (currentSpeed > 0) currentSpeed-=SPEED_CHANGE;
+            if (currentSpeed > 0) currentSpeed -= SPEED_CHANGE;
             if (currentSpeed < 0) currentSpeed = 0;
         }
     }
 
     function firstPersonView() {
-        fpvAt = mult(mModel, vec4(0.0,0.0,2.0,1.0)); // MUDAR VEC4
-        mView = lookAt([point[0], point[1], point[2]], [fpvAt[0], fpvAt[1], fpvAt[2]], [0,1,0]);
-        mView = mult(translate(0,40,0), mult(scalem(40,40,40), mult(rotateY(90), mView)));
+        fpvAt = mult(mModel, vec4(0,0,1,1));
+        //mView = lookAt([point[0], point[1], point[2]], [fpvAt[0], fpvAt[1], fpvAt[2]], [0,1,0]);
+        mView = lookAt([point[0],point[1],point[2]], [fpvAt[0],fpvAt[1],fpvAt[2]], [0,1,0]); // CLOSEST
+        //mView = mult(translate(0,40,0), mult(rotateY(90), mult(scalem(40,40,40), mView)));
+        //mView = mult(mView, mult(rotateY(90), mult(translate(0,0,0), scalem(40,40,40)))); // CLOSEST
+        mView = mult(scalem(4,4,4), mult(rotateY(90), mView));
+        //mView = mult(scalem(30,30,30), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
+        //mView = mult(scalem(10,10,10), mult(rotateY(-helicopterAngle), translate(-point[0], -point[1], -point[2])));
+        //mView = mult(scalem(30,30,30), mult(rotateY(-helicopterAngle), translate(-point[0], -point[1], -point[2])));
     }
 
     function render() { 
@@ -968,8 +974,7 @@ function setup(shaders)
             mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleGamma), rotateY(angleTheta)));
 
         if (fpv)
-            //mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
-            firstPersonView();5
+            firstPersonView();
 
         if (heightChange != 0) updateHeight();
         if (height <= MIN_HEIGHT) propelorRotationSpeed = 0;
@@ -993,7 +998,7 @@ function setup(shaders)
             ground();
         popMatrix();
         pushMatrix();
-            multTranslation([0, 20, 0]);
+            multTranslation([0, 20, 0]); // CONSTANTE BUILDING HEIGHT/2
             middleBuilding();
         popMatrix();
         pushMatrix();
