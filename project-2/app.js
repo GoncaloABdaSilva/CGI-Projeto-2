@@ -10,19 +10,16 @@ import * as PYRAMID from '../../libs/objects/pyramid.js';
 let gl;
 
 let time = 0;           // Global simulation time
-let speed = 0;          // Speed 
-let currentSpeed = 0;
+let currentSpeed = 0;   // Current helicopter speed
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
-let animation = true;   // Animation is running
-let height = 0;
-let boxHeight = [];
-let boxValue = [];
-let boxIndex = 0;
-let boxTime = [];
-let boxAngle = [];
+let height = 0;         // Helicopter height
+let boxValue = [];      // True if the box is being shown
+let boxIndex = 0;       // Index of the current box
+let boxSpeedY = [];
+let boxAngle = [];      // Angle the box makes with X axis on the xz plane
 let mView;
-let angleX = 0;
-let angleY = 0;
+let angleGamma = 0;
+let angleTheta = 0;
 let axonometric = true;
 let fpv = false;
 let movement = false;
@@ -35,13 +32,23 @@ let boxPoint = [];
 let fpvAt;
 let boxSpeedZ = [];
 let boxPositionZ = [];
+let propelorRotation = 0;
+let propelorRotationSpeed = 0;
+let heightChange = 0;   // 1 if height is increasing , -1 if height is decreasing and 0 if height is not changing
 
 const CITY_WIDTH = 50;
-const MAX_SPEED = 3;
-const MIN_SPEED = 0;
-const INCLINE_MULTIPLIER = 10;    //So that the maximum incline the helicopter can have is 30 degrees
+const SPEED_CHANGE = 0.05;
+const MAX_SPEED = 1.5
+const PROPELOR_SPEED_FACTOR = 5;
+const BASE_PROPELOR_SPEED = 15;
+const INCLINE_MULTIPLIER = 20;    // So that the maximum incline the helicopter can have is 30 degrees (20*MAX_SPEED = 30)
 const MAX_HEIGHT = 35;
-const MIN_HEIGHT = 0;
+const MIN_HEIGHT = 3/40;
+const MIN_MOVEMENT_HEIGHT = 1.5;
+const MIN_BOX_HEIGHT = 1.5;
+const HEIGHT_CHANGE = 0.2;
+const GRAVITATIONAL_ACCELERATION = 1.1;
+const AIR_FRICTION = 0.9;
 
 function setup(shaders)
 {
@@ -99,20 +106,19 @@ function setup(shaders)
                 case 's':
                     mode = gl.TRIANGLES;
                     break;
-                case 'p':
-                    animation = !animation;
-                    break;
-                case '+':
+                /*case '+':
                     if(animation && speed + 0.2 <= MAX_SPEED) speed += 0.2;
                     break;
                 case '-':
                     if(animation && speed - 0.2 >= MIN_SPEED) speed -= 0.2;
-                    break;
+                    break;*/
                 case "ArrowUp":
-                    if(animation && height + 0.2 <= MAX_HEIGHT) height += 0.2;
+                    if (height < MAX_HEIGHT)
+                    heightChange = 1;
                     break;
                 case "ArrowDown":
-                    if(animation && height - 0.2 >= MIN_HEIGHT) height -= 0.2;
+                    if (height > MIN_HEIGHT)
+                        heightChange = -1;
                     break;
                 case "ArrowLeft":
                     movement = true;
@@ -122,8 +128,8 @@ function setup(shaders)
                         updateIndex();
                         if(!boxValue[boxIndex]) {
                             boxPoint[boxIndex] = point;
-                            boxTime[boxIndex] = 0.1;
-                            boxHeight[boxIndex] = height;
+                            boxPoint[boxIndex][1] -= 2; // So that the box doesn't start above the helicopter
+                            boxSpeedY[boxIndex] = 0.1;
                             boxValue[boxIndex] = true;
                             boxAngle[boxIndex] = helicopterAngle;
                             boxSpeedZ[boxIndex] = currentSpeed;
@@ -140,8 +146,16 @@ function setup(shaders)
     }
 
     document.onkeyup = function(event) {
-        if (event.key == "ArrowLeft") {
-            movement = false;
+        switch(event.key) {
+            case "ArrowLeft":
+                movement = false;
+                break;
+            case "ArrowUp":
+                heightChange = 0;
+                break;
+            case "ArrowDown":
+                heightChange = 0;
+                break;
         }
     }
 
@@ -151,45 +165,42 @@ function setup(shaders)
     for(let i = 0; i < textInputs.length; i++) {
         textInputs[i].addEventListener("click", function() {
             input = true;
-            console.log(input);
         })
 
         textInputs[i].addEventListener("change", function() {
             input = false;
-            console.log(input);
         })
 
     }
 
     document.querySelector("canvas").addEventListener("click", function() {
         input = false;
-        console.log(input);
     })
 
-    document.getElementById("textInputX").addEventListener("input", function() {
-        document.getElementById("sliderX").value = this.value;
-        angleX = this.value;
+    document.getElementById("textInputGamma").addEventListener("input", function() {
+        document.getElementById("sliderGamma").value = this.value;
+        angleGamma = this.value;
         fpv = false;
         axonometric = true;
     })
 
-    document.getElementById("sliderX").addEventListener("input", function() {
-        document.getElementById("textInputX").value = this.value;
-        angleX = this.value;
+    document.getElementById("sliderGamma").addEventListener("input", function() {
+        document.getElementById("textInputGamma").value = this.value;
+        angleGamma = this.value;
         fpv = false;
         axonometric = true;
     })
 
-    document.getElementById("textInputY").addEventListener("input", function() {
-        document.getElementById("sliderY").value = this.value;
-        angleY = this.value;
+    document.getElementById("textInputTheta").addEventListener("input", function() {
+        document.getElementById("sliderTheta").value = this.value;
+        angleTheta = this.value;
         fpv = false;
         axonometric = true;
     })
 
-    document.getElementById("sliderY").addEventListener("input", function() {
-        document.getElementById("textInputY").value = this.value;
-        angleY = this.value;
+    document.getElementById("sliderTheta").addEventListener("input", function() {
+        document.getElementById("textInputTheta").value = this.value;
+        angleTheta = this.value;
         fpv = false;
         axonometric = true;
     })
@@ -309,7 +320,7 @@ function setup(shaders)
         multScale([20,10,10]);
 
         uploadModelView();
-        updateComponentColor("silver");
+        updateComponentColor("blue");
         SPHERE.draw(gl, program, mode);
     }
 
@@ -317,7 +328,7 @@ function setup(shaders)
         multScale([20,3,2]);
 
         uploadModelView();
-        updateComponentColor("silver");
+        updateComponentColor("blue");
         SPHERE.draw(gl, program, mode);
     }
 
@@ -326,7 +337,7 @@ function setup(shaders)
         multScale([5,3,2]);
 
         uploadModelView();
-        updateComponentColor("silver");
+        updateComponentColor("blue");
         SPHERE.draw(gl, program, mode);
     }
 
@@ -382,7 +393,7 @@ function setup(shaders)
         multScale([2/3,5,2/3]);
 
         uploadModelView();
-        updateComponentColor("blue");
+        updateComponentColor("yellow");
         CUBE.draw(gl, program, mode);
     }
 
@@ -390,7 +401,7 @@ function setup(shaders)
         multScale([1,20,1]);
 
         uploadModelView();
-        updateComponentColor("yellow");
+        updateComponentColor("silver");
         CYLINDER.draw(gl, program, mode);
     }
 
@@ -435,7 +446,7 @@ function setup(shaders)
         pushMatrix();
             pushMatrix();
                 multTranslation([0,-0.5,0]);
-                multRotationY(time*12);
+                multRotationY(propelorRotation);
                 propelor();
             popMatrix()
             pushMatrix();
@@ -443,7 +454,7 @@ function setup(shaders)
             popMatrix();
             pushMatrix();
                 multTranslation([23,-3.5,1]);
-                multRotationZ(time*12);
+                multRotationZ(propelorRotation);
                 multRotationX(90);
                 tailPropelor();
             popMatrix();
@@ -521,9 +532,9 @@ function setup(shaders)
         
         pushMatrix();
             multTranslation([5.1, 0, 0]);
-            for(let i=0; i<2; i++){
+            for(let i=0; i<2; i++){ // CONSTANTE
                 multRotationX(90 * i);
-                for(let j=0; j<3; j++){
+                for(let j=0; j<3; j++){ // CONSTANTE
                     pushMatrix();
                     multTranslation([0, 2.5 - (j*5/2) , 0]);
                         windowFrame();
@@ -555,7 +566,7 @@ function setup(shaders)
             buildingDoor();
         popMatrix();
     
-        for (let j=0; j<4; j++){
+        for (let j=0; j<4; j++){ // CONSTANTE
             multRotationY(90 * j);
             for (let i=0; i<4; i++){
                 pushMatrix();
@@ -593,7 +604,7 @@ function setup(shaders)
         pushMatrix();
             roadPavement(size);
         popMatrix();
-        for(let i=0; i< Math.trunc(size/10) ; i++){
+        for(let i=0; i< Math.trunc(size/10) ; i++){ // CONSTANTE?
             pushMatrix();
                 multTranslation([0, 0, (size/2 -5) - (i*10)]);
                 roadMark();
@@ -624,7 +635,7 @@ function setup(shaders)
     }
 
     function secondarySideWalk(){
-        for(let i=0; i<12; i++){
+        for(let i=0; i<12; i++){ // CONSTANTE
             pushMatrix();
                 multTranslation([0, 0, -31.5 + (i*5)]);
                 sideWalkTile();
@@ -660,7 +671,7 @@ function setup(shaders)
         pushMatrix();
             houseStructure(color);
         popMatrix();
-        for(let i=0; i<4; i++){
+        for(let i=0; i<4; i++){ // CONSTANTE
             pushMatrix();
                 multTranslation([0, 6 + 2*i, 0]);
                 houseRoofTile(16 - (i*3));
@@ -788,7 +799,7 @@ function setup(shaders)
             multTranslation([0,6,0]);
             treeBranches();
         popMatrix();
-        for(let i=0; i<4; i++){
+        for(let i=0; i<4; i++){ // CONSTANTE
             multRotationY(90 * i);
             pushMatrix();
                 multTranslation([1.5,7,0]);
@@ -865,27 +876,84 @@ function setup(shaders)
             multTranslation([-40, 6, -42.5]);
             smallHouse("light_red");
         popMatrix();
-        for (let i=0; i<8; i++){
+        for (let i=0; i<8; i++){ // CONSTANTE
             pushMatrix();
                 multTranslation([42.5 , 4, 40 - i*12]);
                 christmasTree();
             popMatrix();
         }
-        pushMatrix();
-            multTranslation([0, 0.25, 30]);
-            heliport();
-        popMatrix();
     }
 
-
-    function updatePoint(){
+    function updatePoint() {
         mModel = mult(inverse(mView), modelView());
         point = mult(mModel, vec4(0,0,0,1));
     }
 
-    function render()
-    {
-        if(animation) time += speed;
+    function updateHeight() {
+        switch(heightChange) {
+            case 1:
+                if (height + HEIGHT_CHANGE <= MAX_HEIGHT)
+                    height += HEIGHT_CHANGE;
+                else height = MAX_HEIGHT;
+                break;
+            case -1:
+                if (movement) {
+                    if (height - HEIGHT_CHANGE >= MIN_MOVEMENT_HEIGHT)
+                        height -= HEIGHT_CHANGE;
+                    else
+                        height = MIN_MOVEMENT_HEIGHT;
+                }
+                else {
+                    if (height - HEIGHT_CHANGE >= MIN_HEIGHT)
+                        height -= HEIGHT_CHANGE;
+                    else
+                        height = MIN_HEIGHT;
+                }
+                break;
+        }
+    }
+
+    function boxes() {
+        for (let i = 0; i < maxBoxes; i++) {
+            pushMatrix();
+            if (boxValue[i]) {
+                multTranslation([boxPoint[i][0], boxPoint[i][1], boxPoint[i][2]]);
+                multRotationY(boxAngle[i]);
+                multTranslation([0,0,-boxPositionZ[i]]);
+                        if (boxPoint[i][1] > MIN_BOX_HEIGHT) {
+                            boxSpeedY[i] = boxSpeedY[i]*GRAVITATIONAL_ACCELERATION;
+                            boxSpeedZ[i] = boxSpeedZ[i]*AIR_FRICTION;
+                            boxPositionZ[i] += boxSpeedZ[i];
+                            boxPoint[i][1] -= boxSpeedY[i];
+                            if (boxPoint[i][1] < MIN_BOX_HEIGHT) boxPoint[i][1] = MIN_BOX_HEIGHT;
+                        }
+                box();
+            }
+            popMatrix();
+        }
+    }
+
+    function move() {
+        if (movement) {
+            if (currentSpeed < MAX_SPEED) currentSpeed+=SPEED_CHANGE;
+            if (currentSpeed > MAX_SPEED) currentSpeed = MAX_SPEED;
+            if (height < MIN_MOVEMENT_HEIGHT) height += MIN_HEIGHT;
+        }
+        else {
+            if (currentSpeed > 0) currentSpeed-=SPEED_CHANGE;
+            if (currentSpeed < 0) currentSpeed = 0;
+        }
+    }
+
+    function firstPersonView() {
+        fpvAt = mult(mModel, vec4(0.0,0.0,2.0,1.0)); // MUDAR VEC4
+        mView = lookAt([point[0], point[1], point[2]], [fpvAt[0], fpvAt[1], fpvAt[2]], [0,1,0]);
+        mView = mult(translate(0,40,0), mult(scalem(40,40,40), mult(rotateY(90), mView)));
+    }
+
+    function render() { 
+
+        time += MAX_SPEED;
         helicopterAngle += currentSpeed;
         window.requestAnimationFrame(render);
 
@@ -896,70 +964,31 @@ function setup(shaders)
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
 
-        if (axonometric) {
-            mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleX), rotateY(angleY)));
-        }
-        // TENTATIVAS DE FPV
-        //mView = mult(lookAt([0,0,0], [0,0,0], [0,1,0]), mult(translate(-30, -height, 0), rotateY(-helicopterAngle))); // tentativa mais próxima de 1a pessoa
-        //mView = mult(translate(-30, -height, 0), mult(rotateY(-helicopterAngle), lookAt([0,0,0], [0,0,0], [0,1,0])));
-        //mView = mult(rotateY(-helicopterAngle), mult(translate(-30, -height - 4, 0), mult(scalem(4,4,4), rotateY(0))));
-        //mView = mult(translate(0,0,0), mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))));
-        else if (fpv) {
-            //mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
-            fpvAt = mult(mModel, vec4(0.0,0.0,2.0,1.0));
-            mView = lookAt([point[0], point[1], point[2]], [fpvAt[0], fpvAt[1], fpvAt[2]], [0,1,0]);
-            mView = mult(translate(0,40,0), mult(scalem(40,40,40), mult(rotateY(90), mView)));
-            //mView = mult(scalem(32,32,32), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle)));
-            //let v = mult(rotateY(-helicopterAngle), mult(translate(30, -height-2, 0), scalem(2,2,2)));
-            //let tmp = vec4(0,0,0,1);
-            //let eye = mult(v, tmp);
-            //mView = lookAt([eye[0], eye[1], eye[2]], [0,0,0], [0,1,0]);
-        }
+        if (axonometric)
+            mView = mult(lookAt([0,0,CITY_WIDTH], [0,0,0], [0,1,0]), mult(rotateX(angleGamma), rotateY(angleTheta)));
 
-        //maxBoxes = document.getElementById("sliderBoxes").value;
-        //document.getElementById("maxNumOfBoxes").innerHTML = maxBoxes;
+        if (fpv)
+            //mView = mult(scalem(40,40,40), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
+            firstPersonView();5
+
+        if (heightChange != 0) updateHeight();
+        if (height <= MIN_HEIGHT) propelorRotationSpeed = 0;
+        else propelorRotationSpeed = BASE_PROPELOR_SPEED + heightChange*PROPELOR_SPEED_FACTOR;
+        propelorRotation += propelorRotationSpeed;
 
         loadMatrix(mView);
 
         pushMatrix();
             multRotationY(helicopterAngle);         
-            multTranslation([30, height + 6.2, 0]); // 6.2 so that helicopter bases are just above the ground when height = 0
-            //multScale([0.25, 0.25, 0.25]); // ORIGINAL SCALE
-            //multScale([0.4,0.4,0.4]);
-            multRotationY(-90);      // makes the helicopter face forward rather than to the center building
-            if (movement) {
-                if (currentSpeed < speed) currentSpeed+=0.05;
-                if (currentSpeed > speed) currentSpeed = speed;
-                if (height <= 1.5) height += speed/20;
-            }
-            else {
-                if (currentSpeed > 0) currentSpeed-=0.05;
-                if (currentSpeed < 0) currentSpeed = 0;
-            }
-            multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicopter tilts accordingly to speed
-
-            updatePoint();
+            multTranslation([30, height + 6.2, 0]); // 6.2 so that the helicopter base is slightly above the ground when height = 0
+            multRotationY(-90);      // makes the helicopter face forward rather than the center building
+            move();
+            multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicopter tilts as it gains speed
+            updatePoint(); // updates variable that stores the exact point of the helicopter
             multScale([0.4,0.4,0.4]);
             helicopter();
         popMatrix();
-        for (let i = 0; i < maxBoxes; i++) {
-            pushMatrix();
-            if (boxValue[i]) {
-                multTranslation([boxPoint[i][0], boxPoint[i][1]-2, boxPoint[i][2]]);
-                multRotationY(boxAngle[i]);
-                multTranslation([0,0,-boxPositionZ[i]]);
-                        if (boxPoint[i][1]-2 > 1.75) {
-                            boxTime[i] = boxTime[i]*1.1;
-                            boxSpeedZ[i] = boxSpeedZ[i]*0.9;
-                            boxPositionZ[i] += boxSpeedZ[i];
-                            boxPoint[i][1] -= boxTime[i];
-                            if (boxPoint[i][1] < 1.75) boxPoint[i][1] = 1.75;
-                        }
-                box();
-                console.log(point);
-            }
-            popMatrix();
-        }
+        boxes();
         pushMatrix();
             ground();
         popMatrix();
@@ -971,8 +1000,7 @@ function setup(shaders)
             neighbourhood();
         popMatrix();
         pushMatrix();
-            multRotationY(220);
-            multTranslation([30, 0, 0]);
+            multTranslation([0, 0.25, 30]);
             heliport();
         popMatrix();
     }
