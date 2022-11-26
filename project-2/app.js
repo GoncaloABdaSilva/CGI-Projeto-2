@@ -267,7 +267,7 @@ function setup(shaders)
             case "dark_green": newColorVec3 = vec3(0, 100/255, 0); break;
             case "sidewalk_grey": newColorVec3 = vec3(216/255, 214/255, 205/255); break;
             case "roof_tile": newColorVec3 = vec3(157/255, 96/255, 85/255); break;
-            case "light_yellow": newColorVec3 = vec3(1, 1, 1/255); break;
+            case "light_yellow": newColorVec3 = vec3(1, 1, 150/255); break;
             case "light_red": newColorVec3 = vec3(1, 204/255, 203/255); break;
             case "silver": newColorVec3 = vec3(170/255, 169/255, 173/255); break;
         }
@@ -947,14 +947,8 @@ function setup(shaders)
 
     function firstPersonView() {
         fpvAt = mult(mModel, vec4(0,0,1,1));
-        //mView = lookAt([point[0], point[1], point[2]], [fpvAt[0], fpvAt[1], fpvAt[2]], [0,1,0]);
         mView = lookAt([point[0],point[1],point[2]], [fpvAt[0],fpvAt[1],fpvAt[2]], [0,1,0]); // CLOSEST
-        //mView = mult(translate(0,40,0), mult(rotateY(90), mult(scalem(40,40,40), mView)));
-        //mView = mult(mView, mult(rotateY(90), mult(translate(0,0,0), scalem(40,40,40)))); // CLOSEST
         mView = mult(scalem(4,4,4), mult(rotateY(90), mView));
-        //mView = mult(scalem(30,30,30), mult(translate(-30, -height-2, 0), rotateY(-helicopterAngle))); // ORIGINAL
-        //mView = mult(scalem(10,10,10), mult(rotateY(-helicopterAngle), translate(-point[0], -point[1], -point[2])));
-        //mView = mult(scalem(30,30,30), mult(rotateY(-helicopterAngle), translate(-point[0], -point[1], -point[2])));
     }
 
     function render() { 
