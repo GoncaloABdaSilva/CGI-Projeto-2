@@ -9,46 +9,58 @@ import * as PYRAMID from '../../libs/objects/pyramid.js';
 /** @type WebGLRenderingContext */
 let gl;
 
-let time = 0;           // Global simulation time
-let currentSpeed = 0;   // Current helicopter speed
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
-let height = 0;         // Helicopter height
-let boxValue = [];      // True if the box is being shown
-let boxIndex = 0;       // Index of the current box
-let boxSpeedY = [];
-let boxAngle = [];      // Angle the box makes with X axis on the xz plane
-let mView;
-let angleGamma = 0;
-let angleTheta = 0;
-let axonometric = true;
-let fpv = false;
-let movement = false;
-let helicopterAngle = 270;
-let maxBoxes = 1;
-let input = false;
-let point;
-let mModel;
-let boxPoint = [];
-let fpvAt;
-let boxSpeedZ = [];
-let boxPositionZ = [];
-let propelorRotation = 0;
-let propelorRotationSpeed = 0;
-let heightChange = 0;   // 1 if height is increasing , -1 if height is decreasing and 0 if height is not changing
 
-const CITY_WIDTH = 50;
-const SPEED_CHANGE = 0.05;
-const MAX_SPEED = 1.5
-const PROPELOR_SPEED_FACTOR = 5;
-const BASE_PROPELOR_SPEED = 15;
+let mView;              // ModelView
+let mModel;             // Model matrix
+
+/*    HELICOPTER VARIABLES    */
+let currentSpeed = 0;   // Current helicopter speed
+let height = 0;         // Helicopter height
+let helicopterAngle = 270;  // Angle of rotation of the helicopter on Y axis
+let movement = false;   // True if the helicopter is moving horizontally
+let heightChange = 0;   // 1 if height is increasing , -1 if height is decreasing and 0 if height is not changing
+let point;              // Stores the exact position of the helicopter
+let propelorRotation = 0;   // Propelor rotation angle
+let propelorRotationSpeed = 0;  // Propelor rotation speed
+
+/*    BOX VARIABLES    */
+let maxBoxes = 1;       // Max number of boxes
+let boxIndex = 0;       // Index of the current box
+let boxValue = [];      // True if the box is being shown
+let boxPoint = [];      // Position of the box
+let boxAngle = [];      // Boxes' angle of rotation on the Y axis
+let boxSpeedY = [];     // Vertical speed of the box
+let boxSpeedZ = [];     // Horizontal speed of the box
+let boxPositionZ = [];  // Horizontal position of the box, considering its original position
+
+/*    PROJECTION/VIEW VARIABLES    */
+let axonometric = true; // True if axonometric projection is on
+let angleGamma = 0;     // Rotation on X axis for axonometric projection
+let angleTheta = 0;     // Rotation on Y axis for axonometric projection
+let fpv = false;        // True if first person view is on
+let fpvAt;              // Where the helicopter camera should look
+let input = false;      // True if a value is being introduced for the modifiable parameters
+
+/*    CONSTANTS    */
+const CITY_WIDTH = 50;  // Width of the city
+const SPEED_CHANGE = 0.05;  // Speed increment/decrement
+const MAX_SPEED = 1.5;  // Max speed of the helicopter
+const PROPELOR_SPEED_FACTOR = 5;    // Multiplying factor for the propelor speed when the helicopter is moving vertically
+const BASE_PROPELOR_SPEED = 15;     // Propelor speed when the helicopter is not moving vertically
 const INCLINE_MULTIPLIER = 20;    // So that the maximum incline the helicopter can have is 30 degrees (20*MAX_SPEED = 30)
-const MAX_HEIGHT = 35;
-const MIN_HEIGHT = 3/40;
-const MIN_MOVEMENT_HEIGHT = 1.5;
-const MIN_BOX_HEIGHT = 1.5;
-const HEIGHT_CHANGE = 0.2;
-const GRAVITATIONAL_ACCELERATION = 1.1;
-const AIR_FRICTION = 0.9;
+const MAX_HEIGHT = 35;  // Max height of the helicopter
+const MIN_HEIGHT = 3/40;    // Min height of the helicopter
+const MIN_MOVEMENT_HEIGHT = 1.5;    // Min height of the helicopter while moving horizontally
+const MIN_BOX_HEIGHT = 1.5; // Min height for the boxes
+const HEIGHT_CHANGE = 0.2;  // Height increment/decrement
+const GRAVITATIONAL_ACCELERATION = 1.1; // Gravity action factor for the boxes
+const AIR_FRICTION = 0.9;   // Air friction affecting the boxes
+const SIDE_WALK_TILES = 20; // Number of tiles for the main side walk
+const SIDE_WALK_TILES_SECONDARY = 12;   // Number of tiles for the secondary side walk
+const HOUSE_ROOF_TILES = 4; // Number of tiles on the roof of the houses
+const CHRISTMAS_TREES = 8;  // Number of christmas trees
+const BUILDING_HEIGHT = 40; // Height of the central building
 
 function setup(shaders)
 {
@@ -82,13 +94,13 @@ function setup(shaders)
                     // Front view
                     axonometric = false;
                     fpv = false;
-                    mView = lookAt([0,0,1], [0,0,0], [0,1,0]);
+                    mView = lookAt([0, 0, 1], [0, 0, 0], [0, 1, 0]);
                     break;
                 case '3':
                     // Top view
                     axonometric = false;
                     fpv = false;
-                    mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
+                    mView = lookAt([0, 1, 0], [0, 0, 0], [0, 0, -1]);
                     break;
                 case '4':
                     // Right view
@@ -106,12 +118,6 @@ function setup(shaders)
                 case 's':
                     mode = gl.TRIANGLES;
                     break;
-                /*case '+':
-                    if(animation && speed + 0.2 <= MAX_SPEED) speed += 0.2;
-                    break;
-                case '-':
-                    if(animation && speed - 0.2 >= MIN_SPEED) speed -= 0.2;
-                    break;*/
                 case "ArrowUp":
                     if (height < MAX_HEIGHT)
                     heightChange = 1;
@@ -158,8 +164,6 @@ function setup(shaders)
                 break;
         }
     }
-
-    // TEST //
 
     const textInputs = document.getElementsByClassName("textInputs");
     for(let i = 0; i < textInputs.length; i++) {
@@ -214,10 +218,6 @@ function setup(shaders)
         document.getElementById("textInputBoxes").value = this.value;
         maxBoxes = this.value;
     })
-
-    
-
-    // TEST //
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     SPHERE.init(gl);
@@ -275,7 +275,6 @@ function setup(shaders)
     }
 
     //HELICOPTER
-
     function propelorRotor(){
         multScale([2/3,2.5,2/3]);
 
@@ -492,7 +491,7 @@ function setup(shaders)
     
     // CENTRAL BUILDING
     function buildingStructure(){
-        multScale([20, 40, 20]);
+        multScale([20, BUILDING_HEIGHT, 20]);
         
         uploadModelView();
         updateComponentColor("grey");
@@ -532,11 +531,11 @@ function setup(shaders)
         
         pushMatrix();
             multTranslation([5.1, 0, 0]);
-            for(let i=0; i<2; i++){ // CONSTANTE
+            for(let i=0; i<2; i++){
                 multRotationX(90 * i);
-                for(let j=0; j<3; j++){ // CONSTANTE
+                for(let j=0; j<3; j++){
                     pushMatrix();
-                    multTranslation([0, 2.5 - (j*5/2) , 0]);
+                        multTranslation([0, 2.5 - (j*5/2) , 0]);
                         windowFrame();
                     popMatrix();
                 }
@@ -566,7 +565,7 @@ function setup(shaders)
             buildingDoor();
         popMatrix();
     
-        for (let j=0; j<4; j++){ // CONSTANTE
+        for (let j=0; j<4; j++){ // For each side of the building
             multRotationY(90 * j);
             for (let i=0; i<4; i++){
                 pushMatrix();
@@ -604,7 +603,7 @@ function setup(shaders)
         pushMatrix();
             roadPavement(size);
         popMatrix();
-        for(let i=0; i< Math.trunc(size/10) ; i++){ // CONSTANTE?
+        for(let i=0; i< Math.trunc(size/10) ; i++){
             pushMatrix();
                 multTranslation([0, 0, (size/2 -5) - (i*10)]);
                 roadMark();
@@ -624,7 +623,7 @@ function setup(shaders)
     }
 
     function mainSideWalk( buildingSide ){
-        for(let i=0; i<20; i++){
+        for(let i=0; i<SIDE_WALK_TILES; i++){
             if (i < 4 || i > 6 || !buildingSide){
                 pushMatrix();
                     multTranslation([0, 0, -47.5 + (i*5)]);
@@ -635,7 +634,7 @@ function setup(shaders)
     }
 
     function secondarySideWalk(){
-        for(let i=0; i<12; i++){ // CONSTANTE
+        for(let i=0; i<SIDE_WALK_TILES_SECONDARY; i++){
             pushMatrix();
                 multTranslation([0, 0, -31.5 + (i*5)]);
                 sideWalkTile();
@@ -671,7 +670,7 @@ function setup(shaders)
         pushMatrix();
             houseStructure(color);
         popMatrix();
-        for(let i=0; i<4; i++){ // CONSTANTE
+        for(let i=0; i<HOUSE_ROOF_TILES; i++){
             pushMatrix();
                 multTranslation([0, 6 + 2*i, 0]);
                 houseRoofTile(16 - (i*3));
@@ -799,7 +798,7 @@ function setup(shaders)
             multTranslation([0,6,0]);
             treeBranches();
         popMatrix();
-        for(let i=0; i<4; i++){ // CONSTANTE
+        for(let i=0; i<4; i++){ // For each side of a tree, add the decorating balls
             multRotationY(90 * i);
             pushMatrix();
                 multTranslation([1.5,7,0]);
@@ -825,7 +824,7 @@ function setup(shaders)
     }
 
 
-// STREETS
+    // STREETS
     function mainStreet(){
         pushMatrix();
             let pavementSize = 100;
@@ -876,7 +875,7 @@ function setup(shaders)
             multTranslation([-40, 6, -42.5]);
             smallHouse("light_red");
         popMatrix();
-        for (let i=0; i<8; i++){ // CONSTANTE
+        for (let i=0; i<CHRISTMAS_TREES; i++){
             pushMatrix();
                 multTranslation([42.5 , 4, 40 - i*12]);
                 christmasTree();
@@ -884,12 +883,12 @@ function setup(shaders)
         }
     }
 
-    function updatePoint() {
+    function updatePoint() { // Updates the variable that stores the exact position of the helicopter
         mModel = mult(inverse(mView), modelView());
         point = mult(mModel, vec4(0,0,0,1));
     }
 
-    function updateHeight() {
+    function updateHeight() { // Updates the height of the helicopter
         switch(heightChange) {
             case 1:
                 if (height + HEIGHT_CHANGE <= MAX_HEIGHT)
@@ -913,7 +912,7 @@ function setup(shaders)
         }
     }
 
-    function boxes() {
+    function boxes() { // Deals with the boxes' placement and movement
         for (let i = 0; i < maxBoxes; i++) {
             pushMatrix();
             if (boxValue[i]) {
@@ -933,7 +932,7 @@ function setup(shaders)
         }
     }
 
-    function move() {
+    function move() { // Causes the helicopter to move
         if (movement) {
             if (currentSpeed < MAX_SPEED) currentSpeed += SPEED_CHANGE;
             if (currentSpeed > MAX_SPEED) currentSpeed = MAX_SPEED;
@@ -945,15 +944,14 @@ function setup(shaders)
         }
     }
 
-    function firstPersonView() {
+    function firstPersonView() { // Helicopter camera
         fpvAt = mult(mModel, vec4(0,0,1,1));
-        mView = lookAt([point[0],point[1],point[2]], [fpvAt[0],fpvAt[1],fpvAt[2]], [0,1,0]); // CLOSEST
+        mView = lookAt([point[0],point[1],point[2]], [fpvAt[0],fpvAt[1],fpvAt[2]], [0,1,0]);
         mView = mult(scalem(4,4,4), mult(rotateY(90), mult(rotateZ(currentSpeed*INCLINE_MULTIPLIER), mView)));
     }
 
     function render() { 
 
-        time += MAX_SPEED;
         helicopterAngle += currentSpeed;
         window.requestAnimationFrame(render);
 
@@ -980,10 +978,10 @@ function setup(shaders)
         pushMatrix();
             multRotationY(helicopterAngle);         
             multTranslation([30, height + 6.2, 0]); // 6.2 so that the helicopter base is slightly above the ground when height = 0
-            multRotationY(-90);      // makes the helicopter face forward rather than the center building
+            multRotationY(-90);      // Makes the helicopter face forward rather than the center building
             move();
-            multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // helicopter tilts as it gains speed
-            updatePoint(); // updates variable that stores the exact point of the helicopter
+            multRotationZ(currentSpeed * INCLINE_MULTIPLIER);    // Helicopter tilts as it gains speed
+            updatePoint(); // Updates the variable that stores the exact position of the helicopter
             multScale([0.4,0.4,0.4]);
             helicopter();
         popMatrix();
@@ -992,7 +990,7 @@ function setup(shaders)
             ground();
         popMatrix();
         pushMatrix();
-            multTranslation([0, 20, 0]); // CONSTANTE BUILDING HEIGHT/2
+            multTranslation([0, BUILDING_HEIGHT/2, 0]);
             middleBuilding();
         popMatrix();
         pushMatrix();
